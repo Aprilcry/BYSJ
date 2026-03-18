@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app.models import User, UserIngredient, Ingredient, RecipeView, Recipe, Favorite, Post, PostView
 from app import db
+from datetime import datetime, timedelta
 
 # 创建蓝图
 bp = Blueprint('user', __name__, template_folder='templates')
@@ -21,7 +22,8 @@ def index():
         if view.recipe_id not in viewed_items:
             recipe = Recipe.query.get(view.recipe_id)
             if recipe:
-                recipe.viewed_at = view.viewed_at
+                # 将 UTC 时间转换为东八区时间
+                recipe.viewed_at = view.viewed_at + timedelta(hours=8)
                 recent_views.append(recipe)
                 viewed_items.add(view.recipe_id)
     
@@ -31,7 +33,8 @@ def index():
         if view.post_id not in viewed_items:
             post = Post.query.get(view.post_id)
             if post:
-                post.viewed_at = view.viewed_at
+                # 将 UTC 时间转换为东八区时间
+                post.viewed_at = view.viewed_at + timedelta(hours=8)
                 recent_views.append(post)
                 viewed_items.add(view.post_id)
     
