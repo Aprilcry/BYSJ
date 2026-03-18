@@ -62,46 +62,6 @@
             {% endif %}
         </div>
         {% endif %}
-        
-        {% block scripts %}
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const favoriteBtn = document.querySelector('.favorite-btn');
-                if (favoriteBtn) {
-                    favoriteBtn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const targetType = this.getAttribute('data-target-type');
-                        const targetId = this.getAttribute('data-target-id');
-                        
-                        fetch(`{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`), {
-                            method: 'GET',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // 更新按钮状态
-                                if (data.favorited) {
-                                    favoriteBtn.classList.remove('btn-secondary');
-                                    favoriteBtn.classList.add('btn-primary');
-                                    favoriteBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 已收藏';
-                                } else {
-                                    favoriteBtn.classList.remove('btn-primary');
-                                    favoriteBtn.classList.add('btn-secondary');
-                                    favoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i> 收藏';
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                        });
-                    });
-                }
-            });
-        </script>
-        {% endblock %}
     </div>
     <div class="col-md-4">
         <div class="card">
@@ -112,4 +72,44 @@
         </div>
     </div>
 </div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const favoriteBtn = document.querySelector('.favorite-btn');
+        if (favoriteBtn) {
+            favoriteBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetType = this.getAttribute('data-target-type');
+                const targetId = this.getAttribute('data-target-id');
+                
+                fetch(`{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`), {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新按钮状态
+                        if (data.favorited) {
+                            favoriteBtn.classList.remove('btn-secondary');
+                            favoriteBtn.classList.add('btn-primary');
+                            favoriteBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 已收藏';
+                        } else {
+                            favoriteBtn.classList.remove('btn-primary');
+                            favoriteBtn.classList.add('btn-secondary');
+                            favoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i> 收藏';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
 {% endblock %}

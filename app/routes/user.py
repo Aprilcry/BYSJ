@@ -13,24 +13,33 @@ def index():
     user_ingredients = UserIngredient.query.filter_by(user_id=current_user.id).all()
     # 获取最近浏览记录
     recent_views = []
-    # 获取菜谱浏览记录
-    recipe_views = RecipeView.query.filter_by(user_id=current_user.id).all()
+    viewed_items = set()  # 用于去重
+    
+    # 获取菜谱浏览记录，按时间倒序排序
+    recipe_views = RecipeView.query.filter_by(user_id=current_user.id).order_by(RecipeView.viewed_at.desc()).all()
     for view in recipe_views:
-        recipe = Recipe.query.get(view.recipe_id)
-        if recipe:
-            recipe.viewed_at = view.viewed_at
-            recent_views.append(recipe)
-    # 获取帖子浏览记录
-    post_views = PostView.query.filter_by(user_id=current_user.id).all()
+        if view.recipe_id not in viewed_items:
+            recipe = Recipe.query.get(view.recipe_id)
+            if recipe:
+                recipe.viewed_at = view.viewed_at
+                recent_views.append(recipe)
+                viewed_items.add(view.recipe_id)
+    
+    # 获取帖子浏览记录，按时间倒序排序
+    post_views = PostView.query.filter_by(user_id=current_user.id).order_by(PostView.viewed_at.desc()).all()
     for view in post_views:
-        post = Post.query.get(view.post_id)
-        if post:
-            post.viewed_at = view.viewed_at
-            recent_views.append(post)
+        if view.post_id not in viewed_items:
+            post = Post.query.get(view.post_id)
+            if post:
+                post.viewed_at = view.viewed_at
+                recent_views.append(post)
+                viewed_items.add(view.post_id)
+    
     # 按浏览时间排序
     recent_views.sort(key=lambda x: x.viewed_at, reverse=True)
     # 限制显示5条
     recent_views = recent_views[:5]
+    
     # 获取收藏记录
     favorites = []
     favorite_records = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).limit(5).all()
@@ -41,6 +50,7 @@ def index():
             item = Post.query.get(fav.target_id)
         if item:
             favorites.append(item)
+    
     return render_template('user/index.html', user_ingredients=user_ingredients, recent_views=recent_views, favorites=favorites)
 
 @bp.route('/ingredients')
