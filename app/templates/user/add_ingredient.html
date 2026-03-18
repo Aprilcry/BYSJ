@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}添加食材 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">添加食材</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="ingredient_name" class="form-label">食材名称</label>
+            <input type="text" class="form-control" id="ingredient_name" name="ingredient_name" required>
+        </div>
+        <div class="mb-3">
+            <label for="category" class="form-label">分类</label>
+            <select class="form-select" id="category" name="category" required>
+                <option value="蔬菜">蔬菜</option>
+                <option value="肉类">肉类</option>
+                <option value="水果">水果</option>
+                <option value="谷物">谷物</option>
+                <option value="乳制品">乳制品</option>
+                <option value="其他">其他</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="quantity" class="form-label">数量</label>
+            <input type="text" class="form-control" id="quantity" name="quantity" required>
+        </div>
+        <button type="submit" class="btn btn-primary">添加</button>
+    </form>
+{% endblock %}

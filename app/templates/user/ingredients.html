@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}我的食材 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">我的食材</h1>
+    <a href="{{ url_for('user.add_ingredient') }}" class="btn btn-primary mb-4">添加食材</a>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>食材名称</th>
+                <th>数量</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user_ingredient in user_ingredients %}
+            <tr>
+                <td>{{ user_ingredient.ingredient.name }}</td>
+                <td>{{ user_ingredient.quantity }}</td>
+                <td>
+                    <a href="{{ url_for('user.remove_ingredient', id=user_ingredient.id) }}" class="btn btn-danger" onclick="return confirm('确定要移除这个食材吗？');">移除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

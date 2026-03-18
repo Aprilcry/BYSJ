@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.title }} - 智慧厨艺辅助系统{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>{{ recipe.title }}</h2>
+        <p class="text-muted">
+            准备时间: {{ recipe.prep_time }}分钟 | 烹饪时间: {{ recipe.cook_time }}分钟 | 难度: {{ recipe.difficulty }} | 分类: {{ recipe.category }}
+        </p>
+        <p class="text-muted">浏览量: {{ recipe.views }}</p>
+        
+        {% if recipe.image_url %}
+        <img src="{{ recipe.image_url }}" class="img-fluid mb-4" alt="{{ recipe.title }}">
+        {% endif %}
+        
+        <h3>简介</h3>
+        <p>{{ recipe.description }}</p>
+        
+        <h3>食材</h3>
+        <ul class="list-group mb-4">
+            {% for recipe_ingredient in recipe.ingredients %}
+            <li class="list-group-item">{{ recipe_ingredient.ingredient.name }}: {{ recipe_ingredient.quantity }}</li>
+            {% endfor %}
+        </ul>
+        
+        <h3>做法</h3>
+        <div class="mb-4">
+            {{ recipe.instructions|replace('\n', '<br>')|safe }}
+        </div>
+        
+        <div class="mt-4">
+            {% if current_user.is_authenticated %}
+            <button class="btn {% if favorited %}btn-primary{% else %}btn-secondary{% endif %} favorite-btn" data-target-type="recipe" data-target-id="{{ recipe.id }}">
+                <i class="{% if favorited %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i> {% if favorited %}已收藏{% else %}收藏{% endif %}
+            </button>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
+                <i class="fa-regular fa-heart"></i> 收藏
+            </a>
+            {% endif %}
+        </div>
+        
+        {% if recipe.video_url %}
+        <h3>视频教程</h3>
+        <div class="mb-4">
+            <!-- 调试信息 -->
+            <p class="text-muted">当前视频URL: {{ recipe.video_url }}</p>
+            {% if 'bilibili.com' in recipe.video_url %}
+                <!-- B站视频嵌入 -->
+                {% set video_id = recipe.video_url.split('BV')[1].split('/')[0] if 'BV' in recipe.video_url else '' %}
+                {% set bvid = 'BV' ~ video_id %}
+                <p class="text-muted">视频ID: {{ bvid }}</p>
+                <!-- 使用B站官方嵌入格式 -->
+                <iframe src="https://player.bilibili.com/player.html?bvid={{ bvid }}&page=1" 
+                        width="100%" height="400" frameborder="0" allowfullscreen></iframe>
+            {% else %}
+                <!-- 普通视频播放 -->
+                <video width="100%" controls>
+                    <source src="{{ recipe.video_url }}" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% block scripts %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const favoriteBtn = document.querySelector('.favorite-btn');
+                if (favoriteBtn) {
+                    favoriteBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetType = this.getAttribute('data-target-type');
+                        const targetId = this.getAttribute('data-target-id');
+                        
+                        fetch(`{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`), {
+                            method: 'GET',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // 更新按钮状态
+                                if (data.favorited) {
+                                    favoriteBtn.classList.remove('btn-secondary');
+                                    favoriteBtn.classList.add('btn-primary');
+                                    favoriteBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 已收藏';
+                                } else {
+                                    favoriteBtn.classList.remove('btn-primary');
+                                    favoriteBtn.classList.add('btn-secondary');
+                                    favoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i> 收藏';
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                    });
+                }
+            });
+        </script>
+        {% endblock %}
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">相关推荐</h5>
+                <!-- 这里可以添加相关推荐的菜谱 -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

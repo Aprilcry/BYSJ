@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}厨艺广场 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">厨艺广场</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>最新帖子</h3>
+        <a href="{{ url_for('plaza.add') }}" class="btn btn-success">发布帖子</a>
+    </div>
+    <div class="row">
+        {% for post in posts %}
+        <div class="col-md-4">
+            <div class="card post-card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    <p class="card-text">{{ post.content|striptags|truncate(100) }}...</p>
+                    <p class="card-text"><small class="text-muted">{{ post.user.username }} · {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small></p>
+                    <p class="card-text"><small class="text-muted">{{ post.views }} 浏览 | {{ post.likes }} 点赞 | {{ post.comments|length }} 评论</small></p>
+                    <a href="{{ url_for('plaza.detail', id=post.id) }}" class="btn btn-primary">查看详情</a>
+                    {% if current_user.is_authenticated and post.user_id == current_user.id %}
+                    <a href="{{ url_for('plaza.delete', id=post.id) }}" class="btn btn-danger" onclick="return confirm('确定要删除这个帖子吗？');">删除</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .post-card {
+            margin-bottom: 20px;
+            height: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .post-card img {
+            height: 200px;
+            object-fit: cover;
+        }
+    </style>
+{% endblock %}

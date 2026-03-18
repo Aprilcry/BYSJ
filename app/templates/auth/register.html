@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}注册 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">注册</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="username" class="form-label">用户名</label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <label for="email" class="form-label">邮箱</label>
+            <div class="input-group">
+                <input type="email" class="form-control" id="email" name="email" required>
+                <button type="button" class="btn btn-outline-secondary" id="send-code">发送验证码</button>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="code" class="form-label">验证码</label>
+            <input type="text" class="form-control" id="code" name="code" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">密码</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">注册</button>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">登录</a>
+    </form>
+    
+    <script>
+        document.getElementById('send-code').addEventListener('click', function() {
+            var email = document.getElementById('email').value;
+            if (!email) {
+                alert('请输入邮箱');
+                return;
+            }
+            
+            // 发送验证码
+            fetch('/auth/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('验证码已发送');
+                    // 禁用按钮60秒
+                    var button = this;
+                    button.disabled = true;
+                    var countdown = 60;
+                    button.textContent = countdown + '秒后重新发送';
+                    var timer = setInterval(function() {
+                        countdown--;
+                        button.textContent = countdown + '秒后重新发送';
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            button.disabled = false;
+                            button.textContent = '发送验证码';
+                        }
+                    }, 1000);
+                } else {
+                    alert('发送失败: ' + data.message);
+                }
+            });
+        });
+    </script>
+{% endblock %}

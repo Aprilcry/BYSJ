@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}我的收藏 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">我的收藏</h1>
+    {% if favorites %}
+    <div class="row">
+        {% for favorite in favorites %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                {% if favorite.image_url %}
+                <img src="{{ favorite.image_url }}" class="card-img-top" alt="{{ favorite.title }}" style="height: 150px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ favorite.title }}</h5>
+                    {% if favorite.__class__.__name__ == 'Recipe' %}
+                    <p class="card-text">{{ favorite.description[:100] }}...</p>
+                    <a href="{{ url_for('recipe.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                    {% else %}
+                    <p class="card-text">{{ favorite.content[:100] }}...</p>
+                    <a href="{{ url_for('plaza.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                    {% endif %}
+                    <button class="btn btn-danger favorite-btn" data-target-type="{{ favorite.__class__.__name__|lower }}" data-target-id="{{ favorite.id }}">取消收藏</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <!-- 分页 -->
+    {% if pagination %}
+    <div class="mt-4">
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user.favorites', page=pagination.prev_num) }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('user.favorites', page=page_num) }}">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('user.favorites', page=pagination.next_num) }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-5">
+        <h3>暂无收藏</h3>
+        <p>浏览菜谱或帖子时点击收藏按钮，将内容添加到收藏夹</p>
+        <a href="{{ url_for('recipe.index') }}" class="btn btn-primary mt-3">浏览菜谱</a>
+        <a href="{{ url_for('plaza.index') }}" class="btn btn-secondary mt-3 ml-2">浏览帖子</a>
+    </div>
+    {% endif %}
+    
+    {% block scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const favoriteBtns = document.querySelectorAll('.favorite-btn');
+            favoriteBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetType = this.getAttribute('data-target-type');
+                    const targetId = this.getAttribute('data-target-id');
+                    
+                    fetch(`{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`), {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 刷新页面
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+        });
+    </script>
+    {% endblock %}
+{% endblock %}

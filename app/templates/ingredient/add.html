@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}添加食材 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">添加食材</h1>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="name" class="form-label">食材名称</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+        <div class="mb-3">
+            <label for="category" class="form-label">分类</label>
+            <input type="text" class="form-control" id="category" name="category" required>
+        </div>
+        <div class="mb-3">
+            <label for="quantity" class="form-label">数量</label>
+            <input type="text" class="form-control" id="quantity" name="quantity" value="1">
+        </div>
+        <button type="submit" class="btn btn-primary">添加</button>
+        <a href="{{ url_for('ingredient.index') }}" class="btn btn-secondary">取消</a>
+    </form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}首页 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <div class="jumbotron bg-light rounded-lg p-5 mb-4">
+        <h1 class="display-4">欢迎来到智慧厨艺辅助系统</h1>
+        <p class="lead">发现美味食谱，管理个人食材，分享烹饪心得</p>
+        <hr class="my-4">
+        <p>在这里，你可以：</p>
+        <ul>
+            <li>浏览各种美味食谱</li>
+            <li>管理个人食材库存</li>
+            <li>获取个性化食谱推荐</li>
+            <li>在美食广场分享你的烹饪心得</li>
+        </ul>
+        {% if not current_user.is_authenticated %}
+        <a class="btn btn-primary btn-lg" href="{{ url_for('auth.register') }}" role="button">立即注册</a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">热门食谱</h5>
+                    <p class="card-text">查看最受欢迎的食谱</p>
+                    <a href="{{ url_for('recipe.index') }}" class="btn btn-outline-primary">浏览食谱</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">食材管理</h5>
+                    <p class="card-text">管理你的个人食材库存</p>
+                    <a href="{{ url_for('ingredient.index') }}" class="btn btn-outline-primary">我的食材</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">美食广场</h5>
+                    <p class="card-text">分享你的烹饪心得</p>
+                    <a href="{{ url_for('plaza.index') }}" class="btn btn-outline-primary">进入广场</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

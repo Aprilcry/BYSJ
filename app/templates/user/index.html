@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}个人中心 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <!-- 左侧个人信息 -->
+        <div class="col-md-3">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h2 class="card-title">{{ current_user.username }}</h2>
+                    <p class="card-text">{{ current_user.email }}</p>
+                    <p class="card-text">注册时间: {{ current_user.created_at.strftime('%Y-%m-%d') }}</p>
+                    <div class="mt-4">
+                        <a href="{{ url_for('ingredient.index') }}" class="btn btn-primary btn-block mb-2">我的食材</a>
+                        <a href="{{ url_for('user.favorites') }}" class="btn btn-secondary btn-block mb-2">我的收藏</a>
+                        <a href="{{ url_for('user.settings') }}" class="btn btn-outline-secondary btn-block">账户设置</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 右侧内容 -->
+        <div class="col-md-9">
+            <!-- 浏览记录 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>最近浏览</h3>
+                </div>
+                <div class="card-body">
+                    {% if recent_views %}
+                    <div class="row">
+                        {% for item in recent_views %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                {% if item.image_url %}
+                                <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.title }}" style="height: 150px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ item.title }}</h5>
+                                    <p class="card-text text-muted">{{ item.viewed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                                    {% if item.__class__.__name__ == 'Recipe' %}
+                                    <a href="{{ url_for('recipe.detail', id=item.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                    {% else %}
+                                    <a href="{{ url_for('plaza.detail', id=item.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center">暂无浏览记录</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- 收藏夹 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>我的收藏</h3>
+                </div>
+                <div class="card-body">
+                    {% if favorites %}
+                    <div class="row">
+                        {% for favorite in favorites %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                {% if favorite.image_url %}
+                                <img src="{{ favorite.image_url }}" class="card-img-top" alt="{{ favorite.title }}" style="height: 150px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ favorite.title }}</h5>
+                                    {% if favorite.__class__.__name__ == 'Recipe' %}
+                                    <p class="card-text">{{ favorite.description[:50] }}...</p>
+                                    <a href="{{ url_for('recipe.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                                    {% else %}
+                                    <p class="card-text">{{ favorite.content[:50] }}...</p>
+                                    <a href="{{ url_for('plaza.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-center">暂无收藏</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+
+{% block title %}食材管理 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">我的食材</h1>
+    
+    <!-- 操作按钮 -->
+    <div class="mb-4">
+        <button class="btn btn-success">
+            <i class="bi bi-camera"></i> 摄像头识别
+        </button>
+        <a href="{{ url_for('user.add_ingredient') }}" class="btn btn-warning">
+            <i class="bi bi-plus-circle"></i> 手动添加食材
+        </a>
+        <button class="btn btn-danger">
+            <i class="bi bi-trash"></i> 批量删除
+        </button>
+    </div>
+    
+    <!-- 搜索和排序 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" class="form-control" placeholder="搜索食材名称">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <select class="form-select">
+                        <option>排序方式</option>
+                        <option>按名称</option>
+                        <option>按分类</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 分类标签 -->
+            <div class="mt-3">
+                <button class="btn btn-success">全部</button>
+                <button class="btn btn-outline-secondary">蔬菜</button>
+                <button class="btn btn-outline-secondary">肉类</button>
+                <button class="btn btn-outline-secondary">水果</button>
+                <button class="btn btn-outline-secondary">谷物</button>
+                <button class="btn btn-outline-secondary">乳制品</button>
+                <button class="btn btn-outline-secondary">其他</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 食材列表 -->
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" onchange="selectAll(this)"></th>
+                            <th>食材名称</th>
+                            <th>分类</th>
+                            <th>数量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if ingredients %}
+                        {% for user_ingredient in ingredients %}
+                        <tr>
+                            <td><input type="checkbox" value="{{ user_ingredient.ingredient.id }}"></td>
+                            <td>{{ user_ingredient.ingredient.name }}</td>
+                            <td>{{ user_ingredient.ingredient.category }}</td>
+                            <td>{{ user_ingredient.quantity or '1' }}</td>
+                            <td>
+                                <a href="{{ url_for('ingredient.edit', id=user_ingredient.ingredient.id) }}" class="btn btn-secondary">编辑</a>
+                                <a href="#" class="btn btn-danger" data-id="{{ user_ingredient.ingredient.id }}">删除</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <div class="d-flex flex-column align-items-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-plus-circle" style="font-size: 48px; color: #ccc;"></i>
+                                    </div>
+                                    <h3>还没有添加食材</h3>
+                                    <p>添加食材到你的食材列表，获取专属菜谱推荐</p>
+                                    <div class="mt-3">
+                                        <button class="btn btn-success">
+                                            <i class="bi bi-camera"></i> 摄像头识别
+                                        </button>
+                                        <button class="btn btn-warning ml-2">
+                                            <i class="bi bi-plus-circle"></i> 手动添加
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% block styles %}
+    <style>
+        /* 添加Bootstrap图标 */
+        @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
+        
+        .btn {
+            margin-right: 10px;
+        }
+        
+        .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        table th, table td {
+            vertical-align: middle;
+        }
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // 全选功能
+        function selectAll(checkbox) {
+            var checkboxes = document.querySelectorAll('tbody input[type="checkbox"]');
+            checkboxes.forEach(function(item) {
+                item.checked = checkbox.checked;
+            });
+        }
+        
+        // 分类按钮点击事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 分类按钮
+            var categoryButtons = document.querySelectorAll('.btn-outline-secondary, .btn-success');
+            categoryButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // 移除所有按钮的active类
+                    categoryButtons.forEach(function(btn) {
+                        btn.classList.remove('btn-success');
+                        btn.classList.add('btn-outline-secondary');
+                    });
+                    // 添加当前按钮的active类
+                    this.classList.remove('btn-outline-secondary');
+                    this.classList.add('btn-success');
+                    // 筛选分类逻辑
+                    var category = this.textContent.trim();
+                    console.log('切换到分类:', category);
+                    
+                    // 筛选表格中的食材
+                    var rows = document.querySelectorAll('tbody tr');
+                    rows.forEach(function(row) {
+                        // 跳过空状态行
+                        if (row.querySelector('td[colspan]')) {
+                            return;
+                        }
+                        
+                        var categoryCell = row.querySelector('td:nth-child(3)');
+                        if (categoryCell) {
+                            var rowCategory = categoryCell.textContent.trim();
+                            if (category === '全部' || rowCategory === category) {
+                                row.style.display = '';
+                            } else {
+                                row.style.display = 'none';
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // 批量删除按钮
+            var batchDeleteButton = document.querySelector('.btn-danger');
+            if (batchDeleteButton) {
+                batchDeleteButton.addEventListener('click', function() {
+                    console.log('批量删除按钮被点击');
+                    var checkedCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]:checked');
+                    console.log('选中的复选框数量:', checkedCheckboxes.length);
+                    if (checkedCheckboxes.length > 0) {
+                        var confirmResult = confirm('确定要删除选中的食材吗？');
+                        console.log('批量删除确认结果:', confirmResult);
+                        if (confirmResult) {
+                            console.log('用户确认批量删除');
+                            // 收集选中的食材ID
+                            var ingredientIds = [];
+                            checkedCheckboxes.forEach(function(checkbox) {
+                                ingredientIds.push(checkbox.value);
+                                console.log('选中的食材ID:', checkbox.value);
+                            });
+                            console.log('收集到的食材ID:', ingredientIds);
+                            
+                            // 发送POST请求进行批量删除
+                            fetch('/ingredient/batch-delete', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ ingredient_ids: ingredientIds })
+                            })
+                            .then(response => {
+                                console.log('响应状态:', response.status);
+                                return response.json();
+                            })
+                            .then(data => {
+                                console.log('响应数据:', data);
+                                if (data.success) {
+                                    alert('删除成功');
+                                    window.location.reload();
+                                } else {
+                                    alert('删除失败: ' + data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('请求错误:', error);
+                                alert('删除失败: 网络错误');
+                            });
+                        } else {
+                            console.log('用户取消批量删除');
+                        }
+                    } else {
+                        alert('请先选择要删除的食材');
+                    }
+                });
+            }
+            
+            // 获取CSRF令牌
+            function getCsrfToken() {
+                var token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                return token;
+            }
+            
+            // 摄像头识别按钮
+            var cameraButtons = document.querySelectorAll('button.btn-success');
+            cameraButtons.forEach(function(button) {
+                if (button.innerHTML.includes('摄像头识别') || button.querySelector('i.bi-camera')) {
+                    button.addEventListener('click', function() {
+                        window.location.href = '{{ url_for('ingredient.camera') }}';
+                    });
+                }
+            });
+            
+            // 手动添加食材按钮
+            var addButtons = document.querySelectorAll('button.btn-warning');
+            addButtons.forEach(function(button) {
+                if (button.innerHTML.includes('手动添加')) {
+                    button.addEventListener('click', function() {
+                        window.location.href = '{{ url_for('user.add_ingredient') }}';
+                    });
+                }
+            });
+            
+            // 编辑按钮
+            var editButtons = document.querySelectorAll('.btn-secondary');
+            editButtons.forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // 已经是链接，不需要额外处理
+                });
+            });
+            
+            // 删除按钮
+            var deleteButtons = document.querySelectorAll('a.btn-danger[data-id]');
+            console.log('找到的删除按钮数量:', deleteButtons.length);
+            deleteButtons.forEach(function(button) {
+                button.addEventListener('click', function(e) {
+                    console.log('删除按钮被点击');
+                    e.preventDefault();
+                    console.log('默认行为已阻止');
+                    var ingredientId = this.getAttribute('data-id');
+                    console.log('食材ID:', ingredientId);
+                    var confirmResult = confirm('确定要删除这个食材吗？');
+                    console.log('确认结果:', confirmResult);
+                    console.log('确认结果类型:', typeof confirmResult);
+                    if (confirmResult) {
+                        console.log('用户确认删除，发送请求');
+                        // 发送删除请求
+                        console.log('准备发送删除请求到:', '/ingredient/delete/' + ingredientId);
+                        fetch('/ingredient/delete/' + ingredientId, {
+                            method: 'GET'
+                        })
+                        .then(response => {
+                            console.log('删除响应状态:', response.status);
+                            console.log('删除响应URL:', response.url);
+                            if (response.ok) {
+                                console.log('删除成功，刷新页面');
+                                window.location.reload();
+                            } else {
+                                console.log('删除失败');
+                                alert('删除失败');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('请求错误:', error);
+                            alert('删除失败: 网络错误');
+                        });
+                    } else {
+                        console.log('用户取消删除，不发送请求');
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

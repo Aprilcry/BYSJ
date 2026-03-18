@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}今日推荐 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">今日推荐</h1>
+    
+    <!-- 排行榜标签 -->
+    <div class="mb-4">
+        <div class="d-flex">
+            <button class="btn btn-primary me-2" onclick="showRanking('total')">总排行</button>
+            <button class="btn btn-outline-primary me-2" onclick="showRanking('month')">月排行</button>
+            <button class="btn btn-outline-primary" onclick="showRanking('day')">日排行</button>
+        </div>
+    </div>
+    
+    <!-- 展示台 -->
+    <div class="mb-6">
+        <div class="card shadow-sm rounded-lg overflow-hidden">
+            <div class="card-body p-0">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div id="recipe-carousel" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                <!-- 轮播内容将通过JavaScript动态生成 -->
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#recipe-carousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#recipe-carousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 个性化推荐 -->
+    <div class="mb-6">
+        <h2 class="text-center mb-4">为你推荐</h2>
+        <div class="row">
+            {% if recommended_recipes %}
+                {% for recipe, match_count in recommended_recipes[:6] %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                {% if recipe.image_url %}
+                                    <img src="{{ recipe.image_url }}" class="card-img-top mb-3 rounded" style="height: 200px; object-fit: cover;" alt="{{ recipe.title }}">
+                                {% else %}
+                                    <div class="card-img-top mb-3 rounded" style="height: 200px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                                        <span class="text-muted">暂无图片</span>
+                                    </div>
+                                {% endif %}
+                                <h5 class="card-title">{{ recipe.title }}</h5>
+                                <p class="card-text text-muted">{{ recipe.description[:100] }}...</p>
+                                <div class="mt-auto">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-primary">匹配度: {{ match_count }}</span>
+                                        <a href="{{ url_for('recipe.detail', id=recipe.id) }}" class="btn btn-outline-primary btn-sm">查看详情</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-md-12">
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">暂无推荐</h5>
+                            <p class="card-text text-muted">请先添加食材到你的食材库</p>
+                            <a href="{{ url_for('ingredient.index') }}" class="btn btn-primary">去添加食材</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% block scripts %}
+    <script>
+        // 立即执行，测试函数是否正常
+        console.log('JavaScript代码开始加载');
+        
+        function showRanking(type) {
+            console.log('showRanking函数被调用，类型:', type);
+            // 切换按钮样式
+            try {
+                document.querySelectorAll('.btn').forEach(btn => {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline-primary');
+                });
+                event.target.classList.remove('btn-outline-primary');
+                event.target.classList.add('btn-primary');
+                
+                // 切换排行榜的逻辑
+                console.log('切换到' + type + '排行');
+                
+                // 这里可以添加AJAX请求来获取对应排行榜的数据
+                // 然后更新轮播内容
+                // 目前使用模拟数据
+                updateCarousel(type);
+            } catch (error) {
+                console.error('showRanking函数错误:', error);
+            }
+        }
+        
+        function updateCarousel(type) {
+            console.log('开始更新轮播，类型:', type);
+            
+            // 从API获取排行榜数据
+            try {
+                console.log('发送API请求:', `/recommendation/api/ranking?type=${type}`);
+                fetch(`/recommendation/api/ranking?type=${type}`)
+                    .then(response => {
+                        console.log('API响应状态:', response.status);
+                        console.log('API响应URL:', response.url);
+                        console.log('API响应类型:', response.type);
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('获取到的排行榜数据:', data);
+                        
+                        let recipes = data;
+                        
+                        // 如果数据不足5条，用总排行榜数据补充
+                        if (recipes.length < 5) {
+                            console.log('数据不足5条，开始补充');
+                            fetch('/recommendation/api/ranking?type=total')
+                                .then(response => response.json())
+                                .then(totalData => {
+                                    console.log('获取到的总排行榜数据:', totalData);
+                                    for (let i = 0; i < totalData.length && recipes.length < 5; i++) {
+                                        // 避免重复
+                                        if (!recipes.some(r => r.title === totalData[i].title)) {
+                                            recipes.push(totalData[i]);
+                                            console.log('补充数据:', totalData[i].title);
+                                        }
+                                    }
+                                    console.log('最终数据:', recipes);
+                                    renderCarousel(recipes, type);
+                                })
+                                .catch(error => {
+                                    console.error('获取总排行榜数据失败:', error);
+                                    renderCarousel(recipes, type);
+                                });
+                        } else {
+                            console.log('最终数据:', recipes);
+                            renderCarousel(recipes, type);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取排行榜数据失败:', error);
+                        // 显示错误信息
+                        const carouselInner = document.querySelector('#recipe-carousel .carousel-inner');
+                        if (carouselInner) {
+                            carouselInner.innerHTML = `
+                                <div class="carousel-item active">
+                                    <div class="d-block w-100" style="height: 400px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                                        <div class="text-center">
+                                            <h3>数据加载失败</h3>
+                                            <p>请刷新页面重试</p>
+                                            <p>错误信息: ${error.message}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+            } catch (error) {
+                console.error('updateCarousel函数错误:', error);
+                const carouselInner = document.querySelector('#recipe-carousel .carousel-inner');
+                if (carouselInner) {
+                    carouselInner.innerHTML = `
+                        <div class="carousel-item active">
+                            <div class="d-block w-100" style="height: 400px; background-color: #f8f9fa; display: flex; align-items: center; justify-content: center;">
+                                <div class="text-center">
+                                    <h3>JavaScript错误</h3>
+                                    <p>${error.message}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        function renderCarousel(recipes, type) {
+            console.log('renderCarousel函数被调用，数据数量:', recipes.length);
+            // 更新轮播内容
+            try {
+                const carouselInner = document.querySelector('#recipe-carousel .carousel-inner');
+                console.log('找到carouselInner:', carouselInner);
+                
+                if (carouselInner) {
+                    console.log('开始更新轮播内容');
+                    carouselInner.innerHTML = '';
+                    
+                    recipes.forEach((recipe, index) => {
+                        console.log('添加菜谱:', recipe.title, '索引:', index);
+                        const item = document.createElement('div');
+                        item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
+                        
+                        // 根据排行榜类型显示不同的浏览量
+                        let viewsText = '';
+                        if (type === 'total') {
+                            viewsText = `总浏览量: ${recipe.views}`;
+                        } else if (type === 'month') {
+                            viewsText = `月浏览量: ${recipe.month_views}`;
+                        } else if (type === 'day') {
+                            viewsText = `日浏览量: ${recipe.day_views}`;
+                        }
+                        
+                        // 使用菜谱的真实图片URL，如果没有则生成
+                        let imageUrl = recipe.image_url;
+                        if (!imageUrl) {
+                            const imagePrompt = encodeURIComponent(`${recipe.title} 美食图片`);
+                            imageUrl = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${imagePrompt}&image_size=landscape_16_9`;
+                        }
+                        
+                        item.innerHTML = `
+                            <div class="d-block w-100" style="height: 400px; position: relative;">
+                                <img src="${imageUrl}" class="d-block w-100 h-100 object-cover" alt="${recipe.title}">
+                                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 p-4 rounded">
+                                    <h3>${recipe.title}</h3>
+                                    <p>${recipe.description}</p>
+                                    <p>${viewsText}</p>
+                                    <a href="${recipe.id ? '/recipe/detail/' + recipe.id : '#'}" class="btn btn-primary">查看详情</a>
+                                </div>
+                            </div>
+                        `;
+                        carouselInner.appendChild(item);
+                    });
+                    
+                    console.log('轮播内容更新完成');
+                    
+                    // 检查轮播是否正常初始化
+                    if (typeof bootstrap !== 'undefined') {
+                        const carousel = new bootstrap.Carousel(document.getElementById('recipe-carousel'));
+                        console.log('轮播初始化:', carousel);
+                    } else {
+                        console.warn('Bootstrap未加载');
+                    }
+                } else {
+                    console.error('未找到carouselInner元素');
+                }
+            } catch (error) {
+                console.error('renderCarousel函数错误:', error);
+            }
+        }
+        
+        // 页面加载时默认显示总排行
+        console.log('页面加载中...');
+        window.onload = function() {
+            console.log('页面加载完成，开始更新轮播');
+            try {
+                updateCarousel('total');
+            } catch (error) {
+                console.error('window.onload错误:', error);
+            }
+        };
+        
+        // 立即执行，测试函数是否正常
+        console.log('JavaScript代码加载完成');
+        console.log('测试updateCarousel函数:', typeof updateCarousel);
+        console.log('测试renderCarousel函数:', typeof renderCarousel);
+        console.log('测试showRanking函数:', typeof showRanking);
+        console.log('测试bootstrap是否加载:', typeof bootstrap);
+    </script>
+    {% endblock %}
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .carousel-caption {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 20px;
+            border-radius: 10px;
+            bottom: 20px;
+            left: 10%;
+            right: 10%;
+        }
+        
+        .carousel-item {
+            transition: transform 0.5s ease;
+        }
+        
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1, h2 {
+            color: #343a40;
+            font-weight: 600;
+        }
+        
+        .btn {
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .badge {
+            font-size: 0.8rem;
+            padding: 0.4em 0.8em;
+        }
+    </style>
+{% endblock %}

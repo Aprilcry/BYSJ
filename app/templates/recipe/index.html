@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}食谱 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <div class="container-fluid" id="content-container">
+        <div class="row">
+            <!-- 左侧分类栏 -->
+            <div class="col-md-3 col-lg-2">
+                <div class="card mb-4 category-sidebar" style="position: sticky; top: 20px; z-index: 100;">
+                    <div class="card-header bg-warning text-white">
+                        <h4 class="mb-0"><i class="fas fa-utensils"></i> 菜谱分类</h4>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="text-muted mb-3">菜系分类</h5>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item {% if request.args.get('category') == '川菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '川菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=川菜{% endif %}"><i class="fas fa-pepper-hot"></i> 川菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '粤菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '粤菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=粤菜{% endif %}"><i class="fas fa-fish"></i> 粤菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '闽南菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '闽南菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=闽南菜{% endif %}"><i class="fas fa-shrimp"></i> 闽南菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '鲁菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '鲁菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=鲁菜{% endif %}"><i class="fas fa-drumstick-bite"></i> 鲁菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '淮扬菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '淮扬菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=淮扬菜{% endif %}"><i class="fas fa-bread-slice"></i> 淮扬菜</a></li>
+                        </ul>
+                        
+                        <h5 class="text-muted mb-3">口味分类</h5>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item {% if request.args.get('taste') == '甜口' %}active{% endif %}"><a href="{% if request.args.get('taste') == '甜口' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?taste=甜口{% endif %}"><i class="fas fa-candy-cane"></i> 甜口</a></li>
+                            <li class="list-group-item {% if request.args.get('taste') == '咸口' %}active{% endif %}"><a href="{% if request.args.get('taste') == '咸口' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?taste=咸口{% endif %}"><i class="fas fa-salt"></i> 咸口</a></li>
+                            <li class="list-group-item {% if request.args.get('taste') == '酸口' %}active{% endif %}"><a href="{% if request.args.get('taste') == '酸口' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?taste=酸口{% endif %}"><i class="fas fa-lemon"></i> 酸口</a></li>
+                            <li class="list-group-item {% if request.args.get('taste') == '辣口' %}active{% endif %}"><a href="{% if request.args.get('taste') == '辣口' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?taste=辣口{% endif %}"><i class="fas fa-pepper-hot"></i> 辣口</a></li>
+                        </ul>
+                        
+                        <h5 class="text-muted mb-3">难度分类</h5>
+                        <ul class="list-group">
+                            <li class="list-group-item {% if request.args.get('difficulty') == '简单' %}active{% endif %}"><a href="{% if request.args.get('difficulty') == '简单' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?difficulty=简单{% endif %}"><i class="fas fa-check-circle"></i> 简单</a></li>
+                            <li class="list-group-item {% if request.args.get('difficulty') == '中等' %}active{% endif %}"><a href="{% if request.args.get('difficulty') == '中等' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?difficulty=中等{% endif %}"><i class="fas fa-exclamation-circle"></i> 中等</a></li>
+                            <li class="list-group-item {% if request.args.get('difficulty') == '困难' %}active{% endif %}"><a href="{% if request.args.get('difficulty') == '困难' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?difficulty=困难{% endif %}"><i class="fas fa-times-circle"></i> 困难</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧菜谱列表 -->
+            <div class="col-md-9 col-lg-10">
+                <div class="mb-4">
+                    <h1 class="text-center mb-4 text-danger"><i class="fas fa-utensils"></i> 菜谱列表</h1>
+                    
+                    <!-- 搜索栏 -->
+                    <div class="row mb-4">
+                        <div class="col-md-8 col-lg-9">
+                            <form action="{{ url_for('recipe.search') }}" method="get" class="form-inline">
+                                <div class="input-group w-100">
+                                    <input type="text" name="keyword" class="form-control" placeholder="搜索菜谱..." required>
+                                    <div class="input-group-append">
+                                        <button type="submit" class="btn btn-outline-danger"><i class="fas fa-search"></i> 搜索</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="col-md-4 col-lg-3 text-right mt-2 mt-md-0">
+                            {% if current_user.is_authenticated and current_user.is_admin %}
+                            <a href="{{ url_for('recipe.add') }}" class="btn btn-danger btn-block btn-sm-sm"><i class="fas fa-plus"></i> 添加菜谱</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 菜谱卡片 -->
+                <div class="row">
+                    {% for recipe in recipes %}
+                    <div class="col-sm-6 col-lg-4 mb-4">
+                        <div class="card recipe-card shadow-lg h-100">
+                            {% if recipe.image_url %}
+                            <img src="{{ recipe.image_url }}" class="card-img-top" alt="{{ recipe.title }}">
+                            {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <i class="fas fa-utensils text-gray-400" style="font-size: 4rem;"></i>
+                            </div>
+                            {% endif %}
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="card-title font-weight-bold mb-0">{{ recipe.title }}</h5>
+                                    <span class="badge badge-warning">{{ recipe.category }}</span>
+                                </div>
+                                <p class="card-text text-muted flex-grow-1">{{ recipe.description }}</p>
+                                <div class="mt-3">
+                                    <div class="row text-sm text-muted">
+                                        <div class="col-4"><i class="fas fa-clock"></i> {{ recipe.prep_time }}分钟</div>
+                                        <div class="col-4"><i class="fas fa-fire"></i> {{ recipe.cook_time }}分钟</div>
+                                        <div class="col-4"><i class="fas fa-star"></i> {{ recipe.difficulty }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-3">
+                                    <a href="{{ url_for('recipe.detail', id=recipe.id) }}" class="btn btn-primary btn-block mb-2"><i class="fas fa-eye"></i> 查看详情</a>
+                                    {% if current_user.is_authenticated and current_user.is_admin %}
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{{ url_for('recipe.edit', id=recipe.id) }}" class="btn btn-secondary btn-sm"><i class="fas fa-edit"></i> 编辑</a>
+                                        <a href="{{ url_for('recipe.delete', id=recipe.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('确定要删除这个菜谱吗？');"><i class="fas fa-trash"></i> 删除</a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- 空状态 -->
+                {% if not recipes %}
+                <div class="text-center py-10">
+                    <i class="fas fa-search text-gray-400" style="font-size: 4rem;"></i>
+                    <h3 class="mt-4 text-gray-500">没有找到相关菜谱</h3>
+                    <p class="text-gray-400">试试其他搜索关键词或分类</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block styles %}
+    <style>
+        body {
+            background-color: #f8f9fa;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        #content-container {
+            position: relative;
+            min-height: 100vh;
+        }
+        
+        /* 分类栏样式 */
+        .category-sidebar {
+            max-height: calc(100vh - 120px);
+            overflow-y: auto;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .category-sidebar {
+                position: static !important;
+                width: 100% !important;
+                margin-bottom: 20px;
+                max-height: none;
+            }
+        }
+        
+        .recipe-card {
+            height: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .recipe-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .recipe-card img {
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        }
+        
+        .list-group-item a {
+            color: #343a40;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .list-group-item a:hover {
+            color: #ee5a24;
+        }
+        
+        .list-group-item.active {
+            background-color: #ff9f43;
+            border-color: #ff9f43;
+        }
+        
+        .list-group-item.active a {
+            color: white;
+            font-weight: bold;
+        }
+        
+        .list-group-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .badge-warning {
+            background-color: #ff9f43;
+        }
+        
+        .btn-danger {
+            background-color: #ee5a24;
+            border-color: #ee5a24;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d63031;
+            border-color: #d63031;
+        }
+        
+        /* 页脚样式 */
+        .footer {
+            position: relative;
+            z-index: 2;
+            background-color: #f8f9fa;
+        }
+    </style>
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script>
+        // 分类栏位置控制
+        function updateSidebarPosition() {
+            const sidebar = document.querySelector('.category-sidebar');
+            const footer = document.querySelector('.footer');
+            
+            if (!sidebar || !footer) return;
+            
+            // 如果是移动设备，不应用固定定位
+            if (window.innerWidth <= 768) {
+                sidebar.style.position = 'static';
+                return;
+            }
+            
+            const sidebarRect = sidebar.getBoundingClientRect();
+            const footerRect = footer.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+            
+            // 计算侧边栏底部位置
+            const sidebarBottom = sidebarRect.top + sidebarRect.height;
+            
+            // 计算页脚顶部位置
+            const footerTop = footerRect.top;
+            
+            // 计算可用空间
+            const availableSpace = footerTop - 20; // 20px的边距
+            
+            // 如果侧边栏底部会覆盖页脚
+            if (sidebarBottom > availableSpace) {
+                // 计算需要向上移动的距离
+                const neededShift = sidebarBottom - availableSpace;
+                const newTop = Math.max(20, parseInt(sidebar.style.top || 20) - neededShift);
+                sidebar.style.top = newTop + 'px';
+            } else {
+                // 重置到默认位置
+                sidebar.style.top = '20px';
+            }
+        }
+        
+        // 初始化和滚动时更新
+        window.addEventListener('load', () => {
+            updateSidebarPosition();
+            // 延迟执行以确保所有元素都已加载
+            setTimeout(updateSidebarPosition, 100);
+        });
+        
+        window.addEventListener('scroll', updateSidebarPosition);
+        window.addEventListener('resize', updateSidebarPosition);
+        
+        // 防抖处理
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(updateSidebarPosition, 50);
+        });
+    </script>
+{% endblock %}

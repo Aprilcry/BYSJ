@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑菜谱 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">编辑菜谱</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="title" class="form-label">菜谱名称</label>
+            <input type="text" class="form-control" id="title" name="title" value="{{ recipe.title }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">描述</label>
+            <textarea class="form-control" id="description" name="description" required>{{ recipe.description }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label for="instructions" class="form-label">做法</label>
+            <textarea class="form-control" id="instructions" name="instructions" rows="5" required>{{ recipe.instructions }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label for="prep_time" class="form-label">准备时间（分钟）</label>
+            <input type="number" class="form-control" id="prep_time" name="prep_time" value="{{ recipe.prep_time }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="cook_time" class="form-label">烹饪时间（分钟）</label>
+            <input type="number" class="form-control" id="cook_time" name="cook_time" value="{{ recipe.cook_time }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="difficulty" class="form-label">难度</label>
+            <select class="form-control" id="difficulty" name="difficulty" required>
+                <option value="简单" {% if recipe.difficulty == '简单' %}selected{% endif %}>简单</option>
+                <option value="中等" {% if recipe.difficulty == '中等' %}selected{% endif %}>中等</option>
+                <option value="困难" {% if recipe.difficulty == '困难' %}selected{% endif %}>困难</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="category" class="form-label">分类</label>
+            <input type="text" class="form-control" id="category" name="category" value="{{ recipe.category }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="image" class="form-label">图片</label>
+            <input type="file" class="form-control" id="image" name="image">
+            <small class="form-text text-muted">或</small>
+            <input type="text" class="form-control mt-2" id="image_url" name="image_url" value="{{ recipe.image_url }}" placeholder="图片URL">
+        </div>
+        <div class="mb-3">
+            <label for="video" class="form-label">视频</label>
+            <input type="file" class="form-control" id="video" name="video">
+            <small class="form-text text-muted">或</small>
+            <input type="text" class="form-control mt-2" id="video_url" name="video_url" value="{{ recipe.video_url }}" placeholder="视频URL">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">食材</label>
+            <div id="ingredients-container">
+                {% for recipe_ingredient in recipe.ingredients %}
+                <div class="row mb-2">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="ingredients[]" value="{{ recipe_ingredient.ingredient.name }}" placeholder="食材名称">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="quantities[]" value="{{ recipe_ingredient.quantity }}" placeholder="数量">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-ingredient">删除</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="button" class="btn btn-secondary mt-2" id="add-ingredient">添加食材</button>
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="{{ url_for('recipe.detail', id=recipe.id) }}" class="btn btn-secondary">取消</a>
+    </form>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        document.getElementById('add-ingredient').addEventListener('click', function() {
+            const container = document.getElementById('ingredients-container');
+            const newIngredient = document.createElement('div');
+            newIngredient.className = 'row mb-2';
+            newIngredient.innerHTML = `
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="ingredients[]" placeholder="食材名称">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" class="form-control" name="quantities[]" placeholder="数量">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-ingredient">删除</button>
+                </div>
+            `;
+            container.appendChild(newIngredient);
+            
+            // 添加删除事件
+            newIngredient.querySelector('.remove-ingredient').addEventListener('click', function() {
+                newIngredient.remove();
+            });
+        });
+        
+        // 为现有的删除按钮添加事件
+        document.querySelectorAll('.remove-ingredient').forEach(button => {
+            button.addEventListener('click', function() {
+                button.closest('.row').remove();
+            });
+        });
+    </script>
+{% endblock %}

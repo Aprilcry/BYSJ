@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}账户设置 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">账户设置</h1>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="username" class="form-label">用户名</label>
+                    <input type="text" class="form-control" id="username" name="username" value="{{ current_user.username }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">邮箱</label>
+                    <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">修改密码</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="留空表示不修改">
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">确认密码</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="留空表示不修改">
+                </div>
+                <button type="submit" class="btn btn-primary">保存设置</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

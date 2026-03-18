@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}发布帖子 - 智慧厨艺辅助系统{% endblock %}
+
+{% block content %}
+    <h1 class="text-center mb-4">发布帖子</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label for="title" class="form-label">标题</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+        </div>
+        <div class="mb-3">
+            <label for="content" class="form-label">内容</label>
+            <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="image" class="form-label">图片</label>
+            <input type="file" class="form-control" id="image" name="image">
+        </div>
+        <div class="mb-3">
+            <label for="video" class="form-label">视频</label>
+            <input type="file" class="form-control" id="video" name="video">
+        </div>
+        <button type="submit" class="btn btn-primary">发布</button>
+        <a href="{{ url_for('plaza.index') }}" class="btn btn-secondary">取消</a>
+    </form>
+{% endblock %}
