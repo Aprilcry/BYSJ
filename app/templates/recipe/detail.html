@@ -72,6 +72,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
@@ -83,25 +84,40 @@
                 const targetType = this.getAttribute('data-target-type');
                 const targetId = this.getAttribute('data-target-id');
                 
-                fetch(`{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`), {
+                console.log('点击收藏按钮');
+                console.log('目标类型:', targetType);
+                console.log('目标ID:', targetId);
+                
+                const url = `{{ url_for('user.favorite', target_type='recipe', target_id=0) }}`.replace('/recipe/0', `/${targetType}/${targetId}`);
+                console.log('请求URL:', url);
+                
+                fetch(url, {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('响应状态:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('响应数据:', data);
                     if (data.success) {
                         // 更新按钮状态
                         if (data.favorited) {
                             favoriteBtn.classList.remove('btn-secondary');
                             favoriteBtn.classList.add('btn-primary');
                             favoriteBtn.innerHTML = '<i class="fa-solid fa-heart"></i> 已收藏';
+                            console.log('更新为已收藏状态');
                         } else {
                             favoriteBtn.classList.remove('btn-primary');
                             favoriteBtn.classList.add('btn-secondary');
                             favoriteBtn.innerHTML = '<i class="fa-regular fa-heart"></i> 收藏';
+                            console.log('更新为未收藏状态');
                         }
+                    } else {
+                        console.log('请求失败:', data.message);
                     }
                 })
                 .catch(error => {
@@ -111,5 +127,4 @@
         }
     });
 </script>
-{% endblock %}
 {% endblock %}

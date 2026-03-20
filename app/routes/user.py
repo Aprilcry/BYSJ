@@ -111,33 +111,60 @@ def favorites():
 @bp.route('/favorite/<string:target_type>/<int:target_id>')
 @login_required
 def favorite(target_type, target_id):
+    print(f"收藏请求: target_type={target_type}, target_id={target_id}, user_id={current_user.id}")
+    
     # 检查目标类型是否有效
     if target_type not in ['recipe', 'post']:
+        print(f"无效的目标类型: {target_type}")
         return jsonify({'success': False, 'message': '无效的目标类型'})
     
     # 检查目标是否存在
     if target_type == 'recipe':
         target = Recipe.query.get(target_id)
+        if target:
+            print(f"找到菜谱: {target.title}")
+        else:
+            print(f"菜谱不存在: {target_id}")
     else:
         target = Post.query.get(target_id)
+        if target:
+            print(f"找到帖子: {target.title}")
+        else:
+            print(f"帖子不存在: {target_id}")
     
     if not target:
         return jsonify({'success': False, 'message': '目标不存在'})
     
     # 检查是否已经收藏
     existing_favorite = Favorite.query.filter_by(user_id=current_user.id, target_type=target_type, target_id=target_id).first()
+    print(f"现有收藏: {existing_favorite}")
+    
     favorited = False
     
     if existing_favorite:
         # 已收藏，取消收藏
+        print(f"取消收藏: {target_type} {target_id}")
         db.session.delete(existing_favorite)
     else:
         # 未收藏，添加收藏
+        print(f"添加收藏: {target_type} {target_id}")
         new_favorite = Favorite(user_id=current_user.id, target_type=target_type, target_id=target_id)
         db.session.add(new_favorite)
         favorited = True
     
-    db.session.commit()
+    # 提交事务
+    try:
+        db.session.commit()
+        print(f"事务提交成功，favorited={favorited}")
+    except Exception as e:
+        print(f"事务提交失败: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'message': '操作失败'})
+    
+    # 再次检查收藏状态
+    check_favorite = Favorite.query.filter_by(user_id=current_user.id, target_type=target_type, target_id=target_id).first()
+    print(f"操作后收藏状态: {check_favorite}")
+    
     return jsonify({'success': True, 'favorited': favorited})
 
 @bp.route('/settings')
