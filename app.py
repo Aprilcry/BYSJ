@@ -6,9 +6,74 @@ os.environ['ULTRALYTICS_CONFIG_DIR'] = os.path.join(os.getcwd(), 'ultralytics_co
 # 从app包导入应用实例
 from app import app, db
 
+def check_expired_ingredients():
+    """检查过期食材并发送邮件提醒"""
+    from app.models import User, UserIngredient, Ingredient, IngredientShelfLife, get_local_time
+    from app import mail
+    from flask_mail import Message
+    from datetime import timedelta
+    
+    print("开始检查过期食材...")
+    
+    # 获取所有用户
+    users = User.query.all()
+    
+    for user in users:
+        # 获取用户的食材
+        user_ingredients = UserIngredient.query.filter_by(user_id=user.id).all()
+        expired_ingredients = []
+        
+        for user_ingredient in user_ingredients:
+            # 获取食材信息
+            ingredient = Ingredient.query.get(user_ingredient.ingredient_id)
+            if not ingredient:
+                continue
+            
+            # 获取保质期信息
+            shelf_life = IngredientShelfLife.query.filter_by(ingredient_name=ingredient.name).first()
+            if not shelf_life:
+                continue
+            
+            # 计算是否过期
+            if user_ingredient.added_at:
+                days_since_added = (get_local_time() - user_ingredient.added_at).days
+                if days_since_added > shelf_life.shelf_life_days:
+                    expired_ingredients.append({
+                        'name': ingredient.name,
+                        'added_at': user_ingredient.added_at.strftime('%Y-%m-%d %H:%M'),
+                        'expired_days': days_since_added - shelf_life.shelf_life_days
+                    })
+        
+        # 如果有过期食材，发送邮件
+        if expired_ingredients and user.email:
+            print(f"用户 {user.username} 有 {len(expired_ingredients)} 个过期食材")
+            
+            # 构建邮件内容
+            subject = "食材过期提醒"
+            body = f"亲爱的 {user.username}：\n\n"
+            body += "以下食材已经过期，请及时处理：\n\n"
+            
+            for item in expired_ingredients:
+                body += f"- {item['name']}（添加时间：{item['added_at']}，已过期 {item['expired_days']} 天）\n"
+            
+            body += "\n智慧厨艺辅助系统"
+            
+            # 发送邮件
+            try:
+                msg = Message(subject, recipients=[user.email])
+                msg.body = body
+                mail.send(msg)
+                print(f"已向 {user.email} 发送过期食材提醒邮件")
+            except Exception as e:
+                print(f"发送邮件失败：{str(e)}")
+    
+    print("过期食材检查完成")
+
 if __name__ == '__main__':
     # 创建数据库表
     with app.app_context():
         db.create_all()
+        # 检查过期食材
+        check_expired_ingredients()
     # 运行应用
     app.run(debug=True)

@@ -1,6 +1,14 @@
 from app import db
 from datetime import datetime
 from flask_login import UserMixin
+import pytz
+
+# 东八区时区
+TZ = pytz.timezone('Asia/Shanghai')
+
+# 获取东八区当前时间
+def get_local_time():
+    return datetime.now(TZ)
 
 # 用户模型
 class User(db.Model, UserMixin):
@@ -14,7 +22,7 @@ class User(db.Model, UserMixin):
     code_expires_at = db.Column(db.DateTime)
     reset_token = db.Column(db.String(100))
     reset_token_expires_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     ingredients = db.relationship('UserIngredient', backref='user', lazy=True)
     recipe_views = db.relationship('RecipeView', backref='user', lazy=True)
     post_views = db.relationship('PostView', backref='user', lazy=True)
@@ -33,8 +41,7 @@ class UserIngredient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), nullable=False)
-    quantity = db.Column(db.String(50), nullable=False)
-    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+    added_at = db.Column(db.DateTime, default=get_local_time)
 
 # 菜谱模型
 class Recipe(db.Model):
@@ -49,7 +56,7 @@ class Recipe(db.Model):
     difficulty = db.Column(db.String(20), nullable=False)  # 难度
     category = db.Column(db.String(50), nullable=False)
     taste = db.Column(db.String(20), nullable=False, default='咸口')  # 口味
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     views = db.Column(db.Integer, default=0)
     month_views = db.Column(db.Integer, default=0)
     day_views = db.Column(db.Integer, default=0)
@@ -68,21 +75,21 @@ class RecipeView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=get_local_time)
 
 # 帖子浏览记录模型
 class PostView(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=get_local_time)
 
 # 搜索记录模型
 class SearchRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     keyword = db.Column(db.String(100), nullable=False)
     count = db.Column(db.Integer, default=1)
-    last_searched = db.Column(db.DateTime, default=datetime.utcnow)
+    last_searched = db.Column(db.DateTime, default=get_local_time)
 
 # 厨艺广场帖子模型
 class Post(db.Model):
@@ -92,8 +99,8 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     image_url = db.Column(db.String(255))
     video_url = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
+    updated_at = db.Column(db.DateTime, default=get_local_time, onupdate=get_local_time)
     views = db.Column(db.Integer, default=0)
     likes = db.Column(db.Integer, default=0)
     comments = db.relationship('Comment', backref='post', lazy=True, cascade='all, delete-orphan')
@@ -107,7 +114,7 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     user = db.relationship('User', backref='comments')
 
 # 帖子点赞模型
@@ -115,7 +122,7 @@ class PostLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     # 添加唯一约束，确保一个用户只能对一个帖子点赞一次
     __table_args__ = (db.UniqueConstraint('user_id', 'post_id', name='unique_user_post_like'),)
     user = db.relationship('User', backref='post_likes')
@@ -127,7 +134,7 @@ class Favorite(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     target_type = db.Column(db.String(20), nullable=False)  # 'recipe' 或 'post'
     target_id = db.Column(db.Integer, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     # 添加唯一约束，确保一个用户只能收藏一个目标一次
     __table_args__ = (db.UniqueConstraint('user_id', 'target_type', 'target_id', name='unique_user_target_favorite'),)
     user = db.relationship('User', backref='favorites')
@@ -138,7 +145,7 @@ class UserActivity(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     activity_type = db.Column(db.String(50), nullable=False)  # view, like, comment, post
     target_id = db.Column(db.Integer, nullable=False)  # 帖子ID或评论ID
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
     user = db.relationship('User', backref='activities')
 
 # 厨艺知识模型
@@ -147,10 +154,16 @@ class CookingTip(db.Model):
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
     category = db.Column(db.String(50), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_local_time)
 
 # 食材分类映射模型
 class IngredientCategoryMap(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ingredient_name = db.Column(db.String(100), unique=True, nullable=False)
     category = db.Column(db.String(50), nullable=False)
+
+# 食材保质期映射模型
+class IngredientShelfLife(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ingredient_name = db.Column(db.String(100), unique=True, nullable=False)
+    shelf_life_days = db.Column(db.Integer, nullable=False)  # 保质期（天）

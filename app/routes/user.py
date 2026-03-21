@@ -68,7 +68,7 @@ def add_ingredient():
     if request.method == 'POST':
         ingredient_name = request.form['ingredient_name']
         category = request.form['category']
-        quantity = request.form['quantity']
+        added_at = request.form.get('added_at')
         # 查找或创建食材
         ingredient = Ingredient.query.filter_by(name=ingredient_name).first()
         if not ingredient:
@@ -76,7 +76,11 @@ def add_ingredient():
             db.session.add(ingredient)
             db.session.commit()
         # 添加到用户食材
-        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id, quantity=quantity)
+        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id)
+        if added_at:
+            from datetime import datetime
+            from app.models import TZ
+            user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
         db.session.add(user_ingredient)
         db.session.commit()
         return redirect(url_for('ingredient.index'))

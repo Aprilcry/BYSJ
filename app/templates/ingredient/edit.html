@@ -14,8 +14,8 @@
             <input type="text" class="form-control" id="category" name="category" value="{{ ingredient.category }}" required>
         </div>
         <div class="mb-3">
-            <label for="quantity" class="form-label">数量</label>
-            <input type="text" class="form-control" id="quantity" name="quantity" value="{{ user_ingredient.quantity if user_ingredient else '1' }}">
+            <label for="added_at" class="form-label">时间</label>
+            <input type="datetime-local" class="form-control" id="added_at" name="added_at" value="{{ user_ingredient.added_at.strftime('%Y-%m-%dT%H:%M') if user_ingredient and user_ingredient.added_at else '' }}">
         </div>
         <button type="submit" class="btn btn-primary">保存</button>
         <a href="{{ url_for('ingredient.index') }}" class="btn btn-secondary">取消</a>

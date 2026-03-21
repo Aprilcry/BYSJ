@@ -36,13 +36,16 @@ def add():
     if request.method == 'POST':
         name = request.form['name']
         category = request.form['category']
-        quantity = request.form.get('quantity', '1')
+        added_at = request.form.get('added_at')
         # 检查食材是否已存在
         existing_ingredient = Ingredient.query.filter_by(name=name).first()
         if existing_ingredient:
             # 食材已存在，直接添加到用户食材列表
-            from app.models import UserIngredient
-            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=existing_ingredient.id, quantity=quantity)
+            from app.models import UserIngredient, TZ
+            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=existing_ingredient.id)
+            if added_at:
+                from datetime import datetime
+                user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
             db.session.add(user_ingredient)
         else:
             # 创建新食材
@@ -50,8 +53,11 @@ def add():
             db.session.add(new_ingredient)
             db.session.flush()  # 获取食材ID
             # 添加到用户食材列表
-            from app.models import UserIngredient
-            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=new_ingredient.id, quantity=quantity)
+            from app.models import UserIngredient, TZ
+            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=new_ingredient.id)
+            if added_at:
+                from datetime import datetime
+                user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
             db.session.add(user_ingredient)
         db.session.commit()
         return redirect(url_for('ingredient.index'))
@@ -69,15 +75,18 @@ def edit(id):
         ingredient.name = request.form['name']
         ingredient.category = request.form['category']
         
-        # 更新用户食材数量
+        # 更新用户食材时间
         if user_ingredient:
-            quantity = request.form.get('quantity', '1')
-            user_ingredient.quantity = quantity
+            added_at = request.form.get('added_at')
+            if added_at:
+                from datetime import datetime
+                from app.models import TZ
+                user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
         
         db.session.commit()
         return redirect(url_for('ingredient.index'))
     
-    # 传递用户食材对象，以便在模板中显示数量
+    # 传递用户食材对象，以便在模板中显示时间
     return render_template('ingredient/edit.html', ingredient=ingredient, user_ingredient=user_ingredient)
 
 @bp.route('/delete/<int:id>')
@@ -181,7 +190,6 @@ def add_from_camera():
     data = request.get_json()
     ingredient_name = data.get('name')
     category = data.get('category', '其他')
-    quantity = data.get('quantity', '1')
     
     if not ingredient_name:
         return {'success': False, 'message': '请提供食材名称'}
@@ -195,7 +203,7 @@ def add_from_camera():
             db.session.commit()
         
         # 添加到用户食材列表
-        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id, quantity=quantity)
+        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id)
         db.session.add(user_ingredient)
         db.session.commit()
         

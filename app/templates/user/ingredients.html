@@ -9,7 +9,7 @@
         <thead>
             <tr>
                 <th>食材名称</th>
-                <th>数量</th>
+                <th>时间</th>
                 <th>操作</th>
             </tr>
         </thead>
@@ -17,7 +17,7 @@
             {% for user_ingredient in user_ingredients %}
             <tr>
                 <td>{{ user_ingredient.ingredient.name }}</td>
-                <td>{{ user_ingredient.quantity }}</td>
+                <td>{{ user_ingredient.added_at.strftime('%Y-%m-%d %H:%M') if user_ingredient.added_at else '' }}</td>
                 <td>
                     <a href="{{ url_for('user.remove_ingredient', id=user_ingredient.id) }}" class="btn btn-danger" onclick="return confirm('确定要移除这个食材吗？');">移除</a>
                 </td>

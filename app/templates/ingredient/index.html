@@ -61,7 +61,7 @@
                             <th><input type="checkbox" onchange="selectAll(this)"></th>
                             <th>食材名称</th>
                             <th>分类</th>
-                            <th>数量</th>
+                            <th>时间</th>
                             <th>操作</th>
                         </tr>
                     </thead>
@@ -72,7 +72,7 @@
                             <td><input type="checkbox" value="{{ user_ingredient.ingredient.id }}"></td>
                             <td>{{ user_ingredient.ingredient.name }}</td>
                             <td>{{ user_ingredient.ingredient.category }}</td>
-                            <td>{{ user_ingredient.quantity or '1' }}</td>
+                            <td>{{ user_ingredient.added_at.strftime('%Y-%m-%d %H:%M') if user_ingredient.added_at else '' }}</td>
                             <td>
                                 <a href="{{ url_for('ingredient.edit', id=user_ingredient.ingredient.id) }}" class="btn btn-secondary">编辑</a>
                                 <a href="#" class="btn btn-danger" data-id="{{ user_ingredient.ingredient.id }}">删除</a>
