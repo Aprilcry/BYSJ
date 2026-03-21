@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models import User, UserIngredient, Ingredient, RecipeView, Recipe, Favorite, Post, PostView
+from app.models import User, UserIngredient, Ingredient, RecipeView, Recipe, Favorite, Post, PostView, Message
 from app import db
 from datetime import datetime, timedelta
 
@@ -175,3 +175,22 @@ def favorite(target_type, target_id):
 @login_required
 def settings():
     return render_template('user/settings.html')
+
+@bp.route('/messages')
+@login_required
+def messages():
+    # 获取用户的消息，按时间倒序排序
+    messages = Message.query.filter_by(user_id=current_user.id).order_by(Message.created_at.desc()).all()
+    # 标记所有消息为已读
+    unread_messages = Message.query.filter_by(user_id=current_user.id, is_read=False).all()
+    for msg in unread_messages:
+        msg.is_read = True
+    db.session.commit()
+    return render_template('user/messages.html', messages=messages)
+
+@bp.route('/unread-message-count')
+@login_required
+def unread_message_count():
+    # 获取用户未读消息数量
+    count = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
+    return jsonify({'count': count})

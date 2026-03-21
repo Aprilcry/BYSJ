@@ -8,8 +8,8 @@ from app import app, db
 
 def check_expired_ingredients():
     """检查过期食材并发送邮件提醒"""
-    from app.models import User, UserIngredient, Ingredient, IngredientShelfLife, get_local_time
-    from app import mail
+    from app.models import User, UserIngredient, Ingredient, IngredientShelfLife, get_local_time, Message
+    from app import mail, db
     from flask_mail import Message
     from datetime import timedelta
     
@@ -66,6 +66,21 @@ def check_expired_ingredients():
                 print(f"已向 {user.email} 发送过期食材提醒邮件")
             except Exception as e:
                 print(f"发送邮件失败：{str(e)}")
+            
+            # 创建平台内消息通知
+            try:
+                message_content = body.replace('\n', '<br>')
+                new_message = Message(
+                    user_id=user.id,
+                    title=subject,
+                    content=message_content
+                )
+                db.session.add(new_message)
+                db.session.commit()
+                print(f"已向用户 {user.username} 创建平台内过期食材提醒消息")
+            except Exception as e:
+                print(f"创建消息失败：{str(e)}")
+                db.session.rollback()
     
     print("过期食材检查完成")
 

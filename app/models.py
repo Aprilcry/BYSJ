@@ -167,3 +167,13 @@ class IngredientShelfLife(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ingredient_name = db.Column(db.String(100), unique=True, nullable=False)
     shelf_life_days = db.Column(db.Integer, nullable=False)  # 保质期（天）
+
+# 消息模型
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=get_local_time)
+    user = db.relationship('User', backref='messages')

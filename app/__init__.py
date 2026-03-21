@@ -42,7 +42,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # 导入模型
-from app.models import User, Ingredient, UserIngredient, Recipe, RecipeIngredient, RecipeView, SearchRecord, Post, Comment, UserActivity, CookingTip, IngredientCategoryMap, IngredientShelfLife
+from app.models import User, Ingredient, UserIngredient, Recipe, RecipeIngredient, RecipeView, SearchRecord, Post, Comment, UserActivity, CookingTip, IngredientCategoryMap, IngredientShelfLife, Message
 
 # 导入路由
 from app.routes import auth, user, ingredient, recipe, recommendation, plaza, ai
