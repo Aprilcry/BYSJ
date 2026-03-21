@@ -160,6 +160,21 @@ def favorite(target_type, target_id):
     try:
         db.session.commit()
         print(f"事务提交成功，favorited={favorited}")
+        
+        # 发送消息通知（如果是收藏操作且目标是帖子）
+        if favorited and target_type == 'post':
+            post = Post.query.get(target_id)
+            if post and post.user_id != current_user.id:
+                # 向帖子作者发送消息
+                message_title = "帖子被收藏"
+                message_content = f"您的帖子《{post.title}》被 {current_user.username} 收藏了！"
+                new_message = Message(
+                    user_id=post.user_id,
+                    title=message_title,
+                    content=message_content
+                )
+                db.session.add(new_message)
+                db.session.commit()
     except Exception as e:
         print(f"事务提交失败: {e}")
         db.session.rollback()

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models import Post, Comment, User, PostLike, Favorite, PostView
+from app.models import Post, Comment, User, PostLike, Favorite, PostView, Message
 from app import db
 import os
 from datetime import datetime
@@ -104,6 +104,23 @@ def add_comment(post_id):
     )
     db.session.add(new_comment)
     db.session.commit()
+    
+    # 发送消息通知
+    post = Post.query.get(post_id)
+    if post and post.user_id != current_user.id:
+        # 向帖子作者发送消息
+        message_title = "帖子被评论"
+        # 处理评论内容，限制长度为10个字符
+        comment_preview = content[:10] + '...' if len(content) > 10 else content
+        message_content = f"您的帖子《{post.title}》被 {current_user.username} 评论了：{comment_preview}"
+        new_message = Message(
+            user_id=post.user_id,
+            title=message_title,
+            content=message_content
+        )
+        db.session.add(new_message)
+        db.session.commit()
+    
     return redirect(url_for('plaza.detail', id=post_id))
 
 @bp.route('/like/<int:id>')
@@ -123,7 +140,18 @@ def like(id):
         db.session.add(new_like)
         post.likes += 1
         liked = True
-    db.session.commit()
+    # 发送消息通知（如果是点赞操作）
+    if liked and post.user_id != current_user.id:
+        # 向帖子作者发送消息
+        message_title = "帖子被点赞"
+        message_content = f"您的帖子《{post.title}》被 {current_user.username} 点赞了！"
+        new_message = Message(
+            user_id=post.user_id,
+            title=message_title,
+            content=message_content
+        )
+        db.session.add(new_message)
+        db.session.commit()
     
     # 检查是否是AJAX请求
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
