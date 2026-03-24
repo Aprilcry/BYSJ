@@ -19,6 +19,9 @@ SMTP_PORT = 587
 SMTP_USER = '1518965403@qq.com'
 SMTP_PASSWORD = 'mfwngrcfbhfqgadh'
 
+# 内存存储验证码 {email: {'code': '1234', 'expires_at': datetime, 'username': 'xxx'}}
+verification_codes = {}
+
 # 生成4位验证码
 def generate_verification_code():
     return ''.join(random.choices(string.digits, k=4))
@@ -70,24 +73,33 @@ def register():
 
         # 检查用户名是否已存在
         existing_user_by_name = User.query.filter_by(username=username).first()
-        if existing_user_by_name and existing_user_by_name.is_verified:
+        if existing_user_by_name:
             flash('用户名已被使用，请选择其他用户名')
             return render_template('auth/register.html')
 
         # 检查邮箱是否已被注册
         existing_user_by_email = User.query.filter_by(email=email).first()
-        if existing_user_by_email and existing_user_by_email.is_verified:
+        if existing_user_by_email:
             flash('该邮箱已被注册，请使用其他邮箱或直接登录')
             return render_template('auth/register.html')
 
-        # 验证验证码
-        user = User.query.filter_by(email=email).first()
-        if user and user.verification_code == code and user.code_expires_at > datetime.utcnow():
+        # 验证验证码（从内存中验证）
+        verification_data = verification_codes.get(email)
+        if verification_data and verification_data['code'] == code and verification_data['expires_at'] > datetime.utcnow():
+            # 验证码正确，创建用户
             hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            user.username = username
-            user.password = hashed_password.decode('utf-8')
-            user.is_verified = True
+            user = User(
+                username=username,
+                email=email,
+                password=hashed_password.decode('utf-8'),
+                is_verified=True
+            )
+            db.session.add(user)
             db.session.commit()
+            
+            # 清除验证码
+            del verification_codes[email]
+            
             flash('注册成功，请登录')
             return redirect(url_for('auth.login'))
         else:
@@ -108,12 +120,12 @@ def send_code():
 
     # 检查用户名是否已被使用
     existing_user_by_name = User.query.filter_by(username=username).first()
-    if existing_user_by_name and existing_user_by_name.is_verified:
+    if existing_user_by_name:
         return jsonify({'success': False, 'message': '用户名已被使用，请选择其他用户名'})
 
     # 检查邮箱是否已被注册
     existing_user_by_email = User.query.filter_by(email=email).first()
-    if existing_user_by_email and existing_user_by_email.is_verified:
+    if existing_user_by_email:
         return jsonify({'success': False, 'message': '该邮箱已被注册，请使用其他邮箱或直接登录'})
 
     # 生成验证码
@@ -121,17 +133,12 @@ def send_code():
 
     # 发送邮件
     if send_verification_email(email, code):
-        # 保存验证码到数据库
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            # 创建临时用户，使用临时密码（注册时会替换）
-            temp_password = bcrypt.hashpw(''.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            user = User(email=email, username=username, password=temp_password)
-            db.session.add(user)
-        user.username = username
-        user.verification_code = code
-        user.code_expires_at = datetime.utcnow() + timedelta(minutes=10)
-        db.session.commit()
+        # 保存验证码到内存（不写入数据库）
+        verification_codes[email] = {
+            'code': code,
+            'expires_at': datetime.utcnow() + timedelta(minutes=10),
+            'username': username
+        }
         return jsonify({'success': True, 'message': '验证码已发送'})
     else:
         return jsonify({'success': False, 'message': '验证码发送失败，请检查邮箱地址是否正确'})
