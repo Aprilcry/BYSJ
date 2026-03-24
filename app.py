@@ -85,12 +85,10 @@ def check_expired_ingredients():
     print("过期食材检查完成")
 
 if __name__ == '__main__':
-
-    # 运行应用
-    app.run(debug=True)
-    
     # 创建数据库表
     with app.app_context():
         db.create_all()
         # 检查过期食材
         check_expired_ingredients()
+    # 运行应用
+    app.run(debug=True)

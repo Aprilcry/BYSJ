@@ -186,9 +186,39 @@ def favorite(target_type, target_id):
     
     return jsonify({'success': True, 'favorited': favorited})
 
-@bp.route('/settings')
+@bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    if request.method == 'POST':
+        # 获取表单数据
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        # 更新用户名和邮箱
+        current_user.username = username
+        current_user.email = email
+        
+        # 检查是否修改了密码
+        if password:
+            # 验证密码是否一致
+            if password != confirm_password:
+                flash('两次输入的密码不一致', 'danger')
+                return redirect(url_for('user.settings'))
+            # 更新密码
+            from werkzeug.security import generate_password_hash
+            current_user.password = generate_password_hash(password)
+        
+        # 保存到数据库
+        try:
+            db.session.commit()
+            flash('设置已保存', 'success')
+            return redirect(url_for('user.index'))
+        except Exception as e:
+            db.session.rollback()
+            flash('保存失败，请稍后重试', 'danger')
+            return redirect(url_for('user.settings'))
     return render_template('user/settings.html')
 
 @bp.route('/messages')
