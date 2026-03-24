@@ -6,9 +6,9 @@ import time
 
 from app.models import UserIngredient
 
-# 智谱AI API配置
-API_KEY = "1c0afcaadb624b349a1d9a8533f6127c.LYaS9fY6nX5zOXMi"
-API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+# DeepSeek API配置
+API_KEY = "sk-3873bc920ee547418eeb0dcef8d8e254"
+API_URL = "https://api.deepseek.com/chat/completions"
 
 # 创建蓝图
 bp = Blueprint('ai', __name__, url_prefix='/api/ai')
@@ -65,7 +65,7 @@ def chat():
         
         # 构建请求参数
         payload = {
-            "model": "glm-4.7-flash",
+            "model": "deepseek-chat",
             "messages": [
                 {
                     "role": "system",
@@ -76,17 +76,14 @@ def chat():
                     "content": message
                 }
             ],
-            "max_tokens": 1024,
+            "max_tokens": 4096,
             "temperature": 0.7,
-            "stream": True,  # 启用流式输出
-            "thinking": {
-                "type": "disabled"  # 禁用深度思考，减少tokens使用
-            }
+            "stream": True  # 启用流式输出
         }
         
         print(f"[调试] 请求参数: {json.dumps(payload, ensure_ascii=False)}")
         
-        # 发送请求到智谱AI
+        # 发送请求到DeepSeek API
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {API_KEY}"
@@ -146,7 +143,9 @@ def chat():
                                                 # 处理内容中的特殊字符
                                                 content = delta['content'].replace('\n', '\\n').replace('"', '\\"')
                                                 print(f"[调试] 生成内容: {content}")
-                                                yield f"data: {{\"content\": \"{content}\"}}\n\n"
+                                                # 构造响应字符串
+                                                response_str = f'data: {{"choices": [{{"delta": {{"content": "{content}"}}}}]}}\n\n'
+                                                yield response_str
                                             # 处理思考内容
                                             if 'reasoning_content' in delta:
                                                 # 可以选择是否传递思考内容
