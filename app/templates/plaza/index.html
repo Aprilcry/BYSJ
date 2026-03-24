@@ -3,42 +3,517 @@
 {% block title %}厨艺广场 - 智慧厨艺辅助系统{% endblock %}
 
 {% block content %}
-    <h1 class="text-center mb-4">厨艺广场</h1>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>最新帖子</h3>
-        <a href="{{ url_for('plaza.add') }}" class="btn btn-success">发布帖子</a>
-    </div>
-    <div class="row">
-        {% for post in posts %}
-        <div class="col-md-4">
-            <div class="card post-card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ post.title }}</h5>
-                    <p class="card-text">{{ post.content|striptags|truncate(100) }}...</p>
-                    <p class="card-text"><small class="text-muted">{{ post.user.username if post.user.is_active else '该账户已注销' }} · {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</small></p>
-                    <p class="card-text"><small class="text-muted">{{ post.views }} 浏览 | {{ post.likes }} 点赞 | {{ post.comments|length }} 评论</small></p>
-                    <a href="{{ url_for('plaza.detail', id=post.id) }}" class="btn btn-primary">查看详情</a>
-                    {% if current_user.is_authenticated and post.user_id == current_user.id %}
-                    <a href="{{ url_for('plaza.delete', id=post.id) }}" class="btn btn-danger" onclick="return confirm('确定要删除这个帖子吗？');">删除</a>
-                    {% endif %}
-                </div>
+    <div class="anime-plaza-container">
+        <!-- Header with anime theme -->
+        <div class="plaza-header">
+            <div class="header-bg"></div>
+            <div class="header-content">
+                <h1 class="plaza-title">🍳 厨艺广场 🍳</h1>
+                <p class="plaza-subtitle">分享你的厨艺心得，发现美味灵感</p>
             </div>
         </div>
-        {% endfor %}
+
+        <!-- Search and Post Button -->
+        <div class="plaza-controls">
+            <form action="{{ url_for('plaza.index') }}" method="get" class="search-form">
+                <div class="search-input-wrapper">
+                    <input type="text" name="search" class="search-input" placeholder="搜索美食帖子..." value="{{ search_query }}">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            <a href="{{ url_for('plaza.add') }}" class="post-btn">
+                <i class="fas fa-plus"></i> 发布帖子
+            </a>
+        </div>
+
+        <!-- Posts Grid -->
+        <div class="posts-grid">
+            {% for post in posts %}
+            <div class="anime-post-card">
+                <div class="card-header">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-details">
+                            <span class="username">{{ post.user.username if post.user.is_active else '该账户已注销' }}</span>
+                            <span class="post-time">{{ post.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h3 class="post-title">{{ post.title }}</h3>
+                    <p class="post-content">{{ post.content|striptags|truncate(120) }}...</p>
+                    {% if post.image_url %}
+                    <div class="post-image">
+                        <img src="{{ post.image_url }}" alt="{{ post.title }}">
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <div class="post-stats">
+                        <span class="stat-item">
+                            <i class="fas fa-eye"></i> {{ post.views }}
+                        </span>
+                        <span class="stat-item">
+                            <i class="fas fa-heart"></i> {{ post.likes }}
+                        </span>
+                        <span class="stat-item">
+                            <i class="fas fa-comment"></i> {{ post.comments|length }}
+                        </span>
+                    </div>
+                    <div class="post-actions">
+                        <a href="{{ url_for('plaza.detail', id=post.id) }}" class="action-btn detail-btn">
+                            <i class="fas fa-arrow-right"></i> 查看详情
+                        </a>
+                        {% if current_user.is_authenticated and post.user_id == current_user.id %}
+                        <a href="{{ url_for('plaza.delete', id=post.id) }}" class="action-btn delete-btn" onclick="return confirm('确定要删除这个帖子吗？');">
+                            <i class="fas fa-trash"></i> 删除
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Empty state -->
+        {% if not posts %}
+        <div class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <h3>还没有帖子</h3>
+            <p>成为第一个分享厨艺心得的人吧！</p>
+            <a href="{{ url_for('plaza.add') }}" class="post-btn">
+                <i class="fas fa-plus"></i> 发布第一个帖子
+            </a>
+        </div>
+        {% endif %}
     </div>
 {% endblock %}
 
 {% block styles %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .post-card {
-            margin-bottom: 20px;
-            height: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        /* Global Styles */
+        :root {
+            --primary-color: #ff6b6b;
+            --secondary-color: #4ecdc4;
+            --accent-color: #ffd166;
+            --bg-color: #f7f9fc;
+            --card-bg: #ffffff;
+            --text-color: #2d3436;
+            --text-light: #636e72;
+            --border-radius: 12px;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
+            --transition: all 0.3s ease;
         }
-        .post-card img {
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Plaza Container */
+        .anime-plaza-container {
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Header */
+        .plaza-header {
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .header-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
+            z-index: 1;
+        }
+
+        .header-bg::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=anime%20style%20cooking%20scene%20with%20colorful%20food%20and%20cute%20characters&image_size=landscape_16_9');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 0 20px;
+        }
+
+        .plaza-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .plaza-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Controls */
+        .plaza-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 0 20px;
+        }
+
+        .search-form {
+            flex: 1;
+            max-width: 500px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 50px 12px 20px;
+            border: 2px solid var(--secondary-color);
+            border-radius: 30px;
+            font-size: 1rem;
+            transition: var(--transition);
+            background-color: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .search-btn:hover {
+            background-color: #ee5a5a;
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .post-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+
+        .post-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+            color: white;
+        }
+
+        /* Posts Grid */
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            padding: 0 20px;
+        }
+
+        /* Anime Post Card */
+        .anime-post-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        .anime-post-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .anime-post-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        /* Card Header */
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .username {
+            display: block;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 2px;
+        }
+
+        .post-time {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        /* Card Body */
+        .card-body {
+            padding: 20px;
+        }
+
+        .post-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+
+        .post-content {
+            font-size: 0.95rem;
+            color: var(--text-light);
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .post-image {
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .post-image img {
+            width: 100%;
             height: 200px;
             object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .anime-post-card:hover .post-image img {
+            transform: scale(1.05);
+        }
+
+        /* Card Footer */
+        .card-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #f0f0f0;
+            background-color: #f9f9f9;
+        }
+
+        .post-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        .stat-item i {
+            color: var(--primary-color);
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .detail-btn {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .detail-btn:hover {
+            background-color: #45b7aa;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        .delete-btn {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+        .delete-btn:hover {
+            background-color: #ee5a5a;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin: 20px;
+        }
+
+        .empty-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            margin: 0 auto 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+
+        .empty-state p {
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        /* Animations */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .plaza-title {
+                font-size: 2.5rem;
+            }
+
+            .plaza-controls {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+
+            .search-form {
+                max-width: 100%;
+            }
+
+            .post-btn {
+                margin-left: 0;
+                justify-content: center;
+            }
+
+            .posts-grid {
+                grid-template-columns: 1fr;
+                padding: 0 15px;
+            }
         }
     </style>
 {% endblock %}

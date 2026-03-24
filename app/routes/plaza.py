@@ -10,8 +10,48 @@ bp = Blueprint('plaza', __name__)
 
 @bp.route('/')
 def index():
-    posts = Post.query.order_by(Post.created_at.desc()).all()
-    return render_template('plaza/index.html', posts=posts)
+    search_query = request.args.get('search', '')
+    
+    if search_query:
+        # 搜索功能
+        posts = Post.query.filter(
+            (Post.title.contains(search_query)) | 
+            (Post.content.contains(search_query))
+        ).order_by(Post.created_at.desc()).all()
+    else:
+        # 推荐算法
+        if current_user.is_authenticated:
+            # 获取用户已查看的帖子
+            viewed_posts = [view.post_id for view in PostView.query.filter_by(user_id=current_user.id).all()]
+            
+            # 获取所有帖子
+            all_posts = Post.query.all()
+            
+            # 计算每个帖子的推荐分数
+            scored_posts = []
+            for post in all_posts:
+                # 基础分数：点赞数 + 浏览数 * 0.1 + 评论数 * 0.5
+                base_score = post.likes + post.views * 0.1 + len(post.comments) * 0.5
+                
+                # 时间衰减因子：越新的帖子分数越高
+                days_since_creation = (datetime.utcnow() - post.created_at).days
+                time_factor = max(0.1, 1 / (1 + days_since_creation * 0.1))
+                
+                # 已查看惩罚：如果用户已查看过该帖子，降低分数
+                viewed_penalty = 0.3 if post.id in viewed_posts else 1.0
+                
+                # 最终分数
+                final_score = base_score * time_factor * viewed_penalty
+                scored_posts.append((post, final_score))
+            
+            # 按分数排序
+            scored_posts.sort(key=lambda x: x[1], reverse=True)
+            posts = [post for post, score in scored_posts]
+        else:
+            # 未登录用户使用时间排序
+            posts = Post.query.order_by(Post.created_at.desc()).all()
+    
+    return render_template('plaza/index.html', posts=posts, search_query=search_query)
 
 @bp.route('/add', methods=['GET', 'POST'])
 @login_required
