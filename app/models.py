@@ -17,6 +17,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     is_verified = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, default=True)  # True表示未注销，False表示已注销
     is_admin = db.Column(db.Boolean, default=False)
     verification_code = db.Column(db.String(6))
     code_expires_at = db.Column(db.DateTime)

@@ -62,7 +62,7 @@
             {% for comment in comments %}
             <div class="card mb-3">
                 <div class="card-body">
-                    <p class="card-text"><strong>{{ comment.user.username }}</strong></p>
+                    <p class="card-text"><strong>{{ comment.user.username if comment.user.is_active else '该账户已注销' }}</strong></p>
                     <p class="card-text">{{ comment.content }}</p>
                     <p class="card-text"><small class="text-muted">评论时间: {{ comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
                 </div>

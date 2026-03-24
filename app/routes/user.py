@@ -239,3 +239,40 @@ def unread_message_count():
     # 获取用户未读消息数量
     count = Message.query.filter_by(user_id=current_user.id, is_read=False).count()
     return jsonify({'count': count})
+
+@bp.route('/account-management')
+@login_required
+def account_management():
+    # 检查用户是否为管理员
+    if not current_user.is_admin:
+        flash('无权限访问此页面', 'danger')
+        return redirect(url_for('user.index'))
+    
+    # 获取所有用户
+    users = User.query.all()
+    return render_template('user/account_management.html', users=users)
+
+@bp.route('/delete-user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    # 检查用户是否为管理员
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'message': '无权限执行此操作'})
+    
+    # 不能删除自己
+    if user_id == current_user.id:
+        return jsonify({'success': False, 'message': '不能删除自己的账户'})
+    
+    # 查找用户
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'success': False, 'message': '用户不存在'})
+    
+    # 标记用户为已注销
+    user.is_active = False
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': '用户已成功注销'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
