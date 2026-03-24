@@ -67,7 +67,19 @@ def register():
         email = request.form['email']
         code = request.form['code']
         password = request.form['password']
-        
+
+        # 检查用户名是否已存在
+        existing_user_by_name = User.query.filter_by(username=username).first()
+        if existing_user_by_name and existing_user_by_name.is_verified:
+            flash('用户名已被使用，请选择其他用户名')
+            return render_template('auth/register.html')
+
+        # 检查邮箱是否已被注册
+        existing_user_by_email = User.query.filter_by(email=email).first()
+        if existing_user_by_email and existing_user_by_email.is_verified:
+            flash('该邮箱已被注册，请使用其他邮箱或直接登录')
+            return render_template('auth/register.html')
+
         # 验证验证码
         user = User.query.filter_by(email=email).first()
         if user and user.verification_code == code and user.code_expires_at > datetime.utcnow():
@@ -76,35 +88,53 @@ def register():
             user.password = hashed_password.decode('utf-8')
             user.is_verified = True
             db.session.commit()
+            flash('注册成功，请登录')
             return redirect(url_for('auth.login'))
         else:
-            flash('Invalid verification code or code expired')
+            flash('验证码错误或已过期')
     return render_template('auth/register.html')
 
 @bp.route('/send-code', methods=['POST'])
 def send_code():
     data = request.get_json()
     email = data.get('email')
-    
+    username = data.get('username')
+
+    if not username:
+        return jsonify({'success': False, 'message': '请输入用户名'})
+
     if not email:
         return jsonify({'success': False, 'message': '请输入邮箱'})
-    
+
+    # 检查用户名是否已被使用
+    existing_user_by_name = User.query.filter_by(username=username).first()
+    if existing_user_by_name and existing_user_by_name.is_verified:
+        return jsonify({'success': False, 'message': '用户名已被使用，请选择其他用户名'})
+
+    # 检查邮箱是否已被注册
+    existing_user_by_email = User.query.filter_by(email=email).first()
+    if existing_user_by_email and existing_user_by_email.is_verified:
+        return jsonify({'success': False, 'message': '该邮箱已被注册，请使用其他邮箱或直接登录'})
+
     # 生成验证码
     code = generate_verification_code()
-    
+
     # 发送邮件
     if send_verification_email(email, code):
         # 保存验证码到数据库
         user = User.query.filter_by(email=email).first()
         if not user:
-            user = User(email=email)
+            # 创建临时用户，使用临时密码（注册时会替换）
+            temp_password = bcrypt.hashpw(''.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            user = User(email=email, username=username, password=temp_password)
             db.session.add(user)
+        user.username = username
         user.verification_code = code
         user.code_expires_at = datetime.utcnow() + timedelta(minutes=10)
         db.session.commit()
         return jsonify({'success': True, 'message': '验证码已发送'})
     else:
-        return jsonify({'success': False, 'message': '验证码发送失败'})
+        return jsonify({'success': False, 'message': '验证码发送失败，请检查邮箱地址是否正确'})
 
 @bp.route('/logout')
 @login_required
