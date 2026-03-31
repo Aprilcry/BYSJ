@@ -9,3 +9,14 @@
 
 # 保留当前过滤规则文件本身，一起上传
 !.gitignore
+
+# 放行需要上传的caipu_crawler文件夹（包含里面的全部内容）
+!/caipu_crawler/
+
+# 放行需要上传的caipu_crawler文件夹（包含里面的全部内容）
+!/D:\BYSJ\crawler\批量添加菜谱封面图片.py
+!/D:\BYSJ\crawler\video_crawler.py
+!/D:\BYSJ\crawler\SDBZ.py
+!/D:\BYSJ\crawler\remote_process.py
+!/D:\BYSJ\crawler\crawl_food_images.py
+!/D:\BYSJ\crawler\train_yolov8.py
