@@ -84,11 +84,23 @@ def check_expired_ingredients():
     
     print("过期食材检查完成")
 
+# 全局变量，用于标记是否已经初始化
+initialized = False
+
+# 使用before_request装饰器，确保这些操作只执行一次
+def initialize_app():
+    global initialized
+    if not initialized:
+        with app.app_context():
+            # 创建数据库表
+            db.create_all()
+            # 检查过期食材
+            check_expired_ingredients()
+        initialized = True
+
+# 应用启动时执行初始化
+initialize_app()
+
 if __name__ == '__main__':
-    # 创建数据库表
-    with app.app_context():
-        db.create_all()
-        # 检查过期食材
-        check_expired_ingredients()
     # 运行应用
     app.run(debug=True)

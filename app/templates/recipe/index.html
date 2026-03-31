@@ -16,9 +16,15 @@
                         <ul class="list-group mb-4">
                             <li class="list-group-item {% if request.args.get('category') == '川菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '川菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=川菜{% endif %}"><i class="fas fa-pepper-hot"></i> 川菜</a></li>
                             <li class="list-group-item {% if request.args.get('category') == '粤菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '粤菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=粤菜{% endif %}"><i class="fas fa-fish"></i> 粤菜</a></li>
-                            <li class="list-group-item {% if request.args.get('category') == '闽南菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '闽南菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=闽南菜{% endif %}"><i class="fas fa-shrimp"></i> 闽南菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '闽菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '闽菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=闽菜{% endif %}"><i class="fas fa-shrimp"></i> 闽菜</a></li>
                             <li class="list-group-item {% if request.args.get('category') == '鲁菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '鲁菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=鲁菜{% endif %}"><i class="fas fa-drumstick-bite"></i> 鲁菜</a></li>
                             <li class="list-group-item {% if request.args.get('category') == '淮扬菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '淮扬菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=淮扬菜{% endif %}"><i class="fas fa-bread-slice"></i> 淮扬菜</a></li>
+                        </ul>
+                        
+                        <h5 class="text-muted mb-3">菜品类型</h5>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item {% if request.args.get('category') == '家常菜' %}active{% endif %}"><a href="{% if request.args.get('category') == '家常菜' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=家常菜{% endif %}"><i class="fas fa-home"></i> 家常菜</a></li>
+                            <li class="list-group-item {% if request.args.get('category') == '汤类' %}active{% endif %}"><a href="{% if request.args.get('category') == '汤类' %}{{ url_for('recipe.index') }}{% else %}{{ url_for('recipe.index') }}?category=汤类{% endif %}"><i class="fas fa-bowl-food"></i> 汤类</a></li>
                         </ul>
                         
                         <h5 class="text-muted mb-3">口味分类</h5>
