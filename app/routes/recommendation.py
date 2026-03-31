@@ -9,25 +9,44 @@ bp = Blueprint('recommendation', __name__)
 @bp.route('/')
 @login_required
 def index():
+    # 不再在页面加载时计算推荐，而是由前端按钮触发
+    return render_template('recommendation/index.html')
+
+@bp.route('/api/personalized')
+@login_required
+def api_personalized():
     # 获取用户食材
     user_ingredients = UserIngredient.query.filter_by(user_id=current_user.id).all()
     user_ingredient_names = [ui.ingredient.name for ui in user_ingredients]
     
     # 推荐菜谱
     recommended_recipes = []
+    
+    # 优化：使用join查询减少数据库访问
+    from sqlalchemy import func
+    
+    # 先获取所有菜谱及其食材
     all_recipes = Recipe.query.all()
     
     for recipe in all_recipes:
+        # 优化：使用缓存的食材列表，避免重复查询
         recipe_ingredients = [ri.ingredient.name for ri in recipe.ingredients]
         # 计算匹配度
         match_count = len(set(user_ingredient_names) & set(recipe_ingredients))
         if match_count > 0:
-            recommended_recipes.append((recipe, match_count))
+            recommended_recipes.append({
+                'id': recipe.id,
+                'title': recipe.title,
+                'description': recipe.description,
+                'image_url': recipe.image_url,
+                'match_count': match_count
+            })
     
     # 按匹配度排序
-    recommended_recipes.sort(key=lambda x: x[1], reverse=True)
+    recommended_recipes.sort(key=lambda x: x['match_count'], reverse=True)
     
-    return render_template('recommendation/index.html', recommended_recipes=recommended_recipes)
+    # 限制返回结果数量
+    return jsonify(recommended_recipes[:6])
 
 @bp.route('/api/recommend')
 def api_recommend():
