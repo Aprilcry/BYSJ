@@ -99,8 +99,18 @@ def initialize_app():
             # 初始化推荐器（延迟到第一次请求时）
         initialized = True
 
+def reset_views():
+    """重置浏览量"""
+    try:
+        from check.views_reset import check_and_reset_views
+        check_and_reset_views()
+    except Exception as e:
+        print(f"浏览量重置错误: {e}")
+
 # 应用启动时执行初始化
 initialize_app()
+# 重置浏览量
+reset_views()
 
 # 注册一个before_request处理函数，在第一次请求时初始化推荐器
 def init_recommender_on_first_request():
