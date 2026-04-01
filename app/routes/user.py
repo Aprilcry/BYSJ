@@ -12,7 +12,11 @@ bp = Blueprint('user', __name__, template_folder='templates')
 def index():
     # 获取用户食材
     user_ingredients = UserIngredient.query.filter_by(user_id=current_user.id).all()
-    # 获取最近浏览记录
+    
+    # 获取最近浏览记录 - 支持分页
+    view_page = request.args.get('view_page', 1, type=int)
+    view_per_page = 6
+    
     recent_views = []
     viewed_items = set()  # 用于去重
     
@@ -40,12 +44,32 @@ def index():
     
     # 按浏览时间排序
     recent_views.sort(key=lambda x: x.viewed_at, reverse=True)
-    # 限制显示5条
-    recent_views = recent_views[:5]
     
-    # 获取收藏记录
+    # 手动分页
+    total_views = len(recent_views)
+    view_pagination = {
+        'page': view_page,
+        'per_page': view_per_page,
+        'total': total_views,
+        'pages': (total_views + view_per_page - 1) // view_per_page,
+        'has_prev': view_page > 1,
+        'has_next': view_page < ((total_views + view_per_page - 1) // view_per_page),
+        'prev_num': view_page - 1,
+        'next_num': view_page + 1,
+        'iter_pages': lambda left_edge=1, right_edge=1, left_current=1, right_current=2: range(1, (total_views + view_per_page - 1) // view_per_page + 1)
+    }
+    
+    # 切片获取当前页数据
+    start = (view_page - 1) * view_per_page
+    end = start + view_per_page
+    recent_views = recent_views[start:end]
+    
+    # 获取收藏记录 - 支持分页
+    fav_page = request.args.get('fav_page', 1, type=int)
+    fav_per_page = 6
+    
     favorites = []
-    favorite_records = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).limit(5).all()
+    favorite_records = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).all()
     for fav in favorite_records:
         if fav.target_type == 'recipe':
             item = Recipe.query.get(fav.target_id)
@@ -54,7 +78,28 @@ def index():
         if item:
             favorites.append(item)
     
-    return render_template('user/index.html', user_ingredients=user_ingredients, recent_views=recent_views, favorites=favorites)
+    # 手动分页
+    total_favs = len(favorites)
+    fav_pagination = {
+        'page': fav_page,
+        'per_page': fav_per_page,
+        'total': total_favs,
+        'pages': (total_favs + fav_per_page - 1) // fav_per_page,
+        'has_prev': fav_page > 1,
+        'has_next': fav_page < ((total_favs + fav_per_page - 1) // fav_per_page),
+        'prev_num': fav_page - 1,
+        'next_num': fav_page + 1,
+        'iter_pages': lambda left_edge=1, right_edge=1, left_current=1, right_current=2: range(1, (total_favs + fav_per_page - 1) // fav_per_page + 1)
+    }
+    
+    # 切片获取当前页数据
+    start = (fav_page - 1) * fav_per_page
+    end = start + fav_per_page
+    favorites = favorites[start:end]
+    
+    return render_template('user/index.html', user_ingredients=user_ingredients, 
+                          recent_views=recent_views, view_pagination=view_pagination,
+                          favorites=favorites, fav_pagination=fav_pagination)
 
 @bp.route('/ingredients')
 @login_required
@@ -95,22 +140,7 @@ def remove_ingredient(id):
         db.session.commit()
     return redirect(url_for('user.ingredients'))
 
-@bp.route('/favorites')
-@login_required
-def favorites():
-    # 获取收藏记录
-    page = request.args.get('page', 1, type=int)
-    per_page = 5
-    favorite_records = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
-    favorites = []
-    for fav in favorite_records.items:
-        if fav.target_type == 'recipe':
-            item = Recipe.query.get(fav.target_id)
-        else:
-            item = Post.query.get(fav.target_id)
-        if item:
-            favorites.append(item)
-    return render_template('user/favorites.html', favorites=favorites, pagination=favorite_records)
+
 
 @bp.route('/favorite/<string:target_type>/<int:target_id>')
 @login_required

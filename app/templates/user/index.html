@@ -6,23 +6,31 @@
     <div class="row">
         <!-- 左侧个人信息 -->
         <div class="col-md-3">
-            <div class="card mb-4">
-                <div class="card-body text-center">
-                    <h2 class="card-title">{{ current_user.username }}</h2>
-                    <p class="card-text">{{ current_user.email }}</p>
-                    <p class="card-text">注册时间: {{ current_user.created_at.strftime('%Y-%m-%d') }}</p>
-                    <div class="mt-4">
-                        <div class="d-flex gap-2 mb-2">
-                            <a href="{{ url_for('ingredient.index') }}" class="btn btn-primary flex-fill">我的食材</a>
-                            <a href="{{ url_for('user.favorites') }}" class="btn btn-secondary flex-fill">我的收藏</a>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a href="{{ url_for('user.settings') }}" class="btn btn-outline-secondary flex-fill">账户设置</a>
-                            {% if current_user.is_admin %}
-                            <a href="{{ url_for('user.account_management') }}" class="btn btn-outline-danger flex-fill">账户管理</a>
-                            {% endif %}
-                        </div>
-                    </div>
+            <div class="profile-card">
+                <div class="profile-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h2 class="profile-name">{{ current_user.username }}</h2>
+                <p class="profile-email">{{ current_user.email }}</p>
+                <p class="profile-date">
+                    <i class="fas fa-calendar-alt"></i>
+                    注册于 {{ current_user.created_at.strftime('%Y-%m-%d') }}
+                </p>
+                <div class="profile-actions">
+                    <a href="{{ url_for('ingredient.index') }}" class="btn-profile btn-primary">
+                        <i class="fas fa-carrot"></i>
+                        我的食材
+                    </a>
+                    <a href="{{ url_for('user.settings') }}" class="btn-profile btn-outline">
+                        <i class="fas fa-cog"></i>
+                        账户设置
+                    </a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('user.account_management') }}" class="btn-profile btn-danger">
+                        <i class="fas fa-users-cog"></i>
+                        账户管理
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -30,73 +38,760 @@
         <!-- 右侧内容 -->
         <div class="col-md-9">
             <!-- 浏览记录 -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3>最近浏览</h3>
+            <div class="content-section">
+                <div class="section-header">
+                    <div class="section-icon history-icon">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <div class="section-title-group">
+                        <h3 class="section-title">最近浏览</h3>
+                        <p class="section-subtitle">共 {{ view_pagination.total }} 条浏览记录</p>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     {% if recent_views %}
-                    <div class="row">
+                    <div class="items-grid">
                         {% for item in recent_views %}
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
+                        <a href="{% if item.__class__.__name__ == 'Recipe' %}{{ url_for('recipe.detail', id=item.id) }}{% else %}{{ url_for('plaza.detail', id=item.id) }}{% endif %}" class="item-card">
+                            <div class="item-image-wrapper">
                                 {% if item.image_url %}
-                                <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.title }}" style="height: 150px; object-fit: cover;">
+                                <img src="{{ item.image_url }}" class="item-image" alt="{{ item.title }}" loading="lazy">
+                                {% else %}
+                                <div class="item-image-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
                                 {% endif %}
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ item.title }}</h5>
-                                    <p class="card-text text-muted">{{ item.viewed_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                                <div class="item-type-badge {% if item.__class__.__name__ == 'Recipe' %}type-recipe{% else %}type-post{% endif %}">
                                     {% if item.__class__.__name__ == 'Recipe' %}
-                                    <a href="{{ url_for('recipe.detail', id=item.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                    <i class="fas fa-utensils"></i> 菜谱
                                     {% else %}
-                                    <a href="{{ url_for('plaza.detail', id=item.id) }}" class="btn btn-sm btn-primary">查看</a>
+                                    <i class="fas fa-comment-alt"></i> 帖子
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
+                            <div class="item-content">
+                                <h5 class="item-title">{{ item.title }}</h5>
+                                <div class="item-meta">
+                                    <i class="far fa-clock"></i>
+                                    <span>{{ item.viewed_at.strftime('%m-%d %H:%M') }}</span>
+                                </div>
+                            </div>
+                            <div class="item-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </a>
                         {% endfor %}
                     </div>
+                    
+                    <!-- 浏览记录分页 -->
+                    {% if view_pagination.pages > 1 %}
+                    <div class="pagination-wrapper">
+                        <nav class="pagination-nav">
+                            {% if view_pagination.has_prev %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.prev_num, fav_page=fav_pagination.page) }}" class="page-btn page-prev">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-prev disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            {% endif %}
+                            
+                            <div class="page-numbers">
+                                {% for page_num in view_pagination.iter_pages() %}
+                                {% if page_num == view_pagination.page %}
+                                <span class="page-num active">{{ page_num }}</span>
+                                {% else %}
+                                <a href="{{ url_for('user.index', view_page=page_num, fav_page=fav_pagination.page) }}" class="page-num">{{ page_num }}</a>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if view_pagination.has_next %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.next_num, fav_page=fav_pagination.page) }}" class="page-btn page-next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-next disabled">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                            {% endif %}
+                        </nav>
+                    </div>
+                    {% endif %}
                     {% else %}
-                    <p class="text-center">暂无浏览记录</p>
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <p class="empty-text">暂无浏览记录</p>
+                        <a href="{{ url_for('recipe.index') }}" class="empty-btn">去发现美食</a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
             
             <!-- 收藏夹 -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h3>我的收藏</h3>
+            <div class="content-section">
+                <div class="section-header">
+                    <div class="section-icon favorite-icon">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div class="section-title-group">
+                        <h3 class="section-title">我的收藏</h3>
+                        <p class="section-subtitle">共 {{ fav_pagination.total }} 个收藏</p>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="section-body">
                     {% if favorites %}
-                    <div class="row">
+                    <div class="items-grid">
                         {% for favorite in favorites %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card">
+                        <a href="{% if favorite.__class__.__name__ == 'Recipe' %}{{ url_for('recipe.detail', id=favorite.id) }}{% else %}{{ url_for('plaza.detail', id=favorite.id) }}{% endif %}" class="item-card">
+                            <div class="item-image-wrapper">
                                 {% if favorite.image_url %}
-                                <img src="{{ favorite.image_url }}" class="card-img-top" alt="{{ favorite.title }}" style="height: 150px; object-fit: cover;">
+                                <img src="{{ favorite.image_url }}" class="item-image" alt="{{ favorite.title }}" loading="lazy">
+                                {% else %}
+                                <div class="item-image-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
                                 {% endif %}
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ favorite.title }}</h5>
+                                <div class="item-type-badge {% if favorite.__class__.__name__ == 'Recipe' %}type-recipe{% else %}type-post{% endif %}">
                                     {% if favorite.__class__.__name__ == 'Recipe' %}
-                                    <p class="card-text">{{ favorite.description[:50] }}...</p>
-                                    <a href="{{ url_for('recipe.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                                    <i class="fas fa-utensils"></i> 菜谱
                                     {% else %}
-                                    <p class="card-text">{{ favorite.content[:50] }}...</p>
-                                    <a href="{{ url_for('plaza.detail', id=favorite.id) }}" class="btn btn-primary">查看</a>
+                                    <i class="fas fa-comment-alt"></i> 帖子
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
+                            <div class="item-content">
+                                <h5 class="item-title">{{ favorite.title }}</h5>
+                                <p class="item-desc">
+                                    {% if favorite.__class__.__name__ == 'Recipe' %}
+                                    {{ favorite.description[:40] }}{% if favorite.description|length > 40 %}...{% endif %}
+                                    {% else %}
+                                    {{ favorite.content[:40] }}{% if favorite.content|length > 40 %}...{% endif %}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="item-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </a>
                         {% endfor %}
                     </div>
+                    
+                    <!-- 收藏分页 -->
+                    {% if fav_pagination.pages > 1 %}
+                    <div class="pagination-wrapper">
+                        <nav class="pagination-nav">
+                            {% if fav_pagination.has_prev %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=fav_pagination.prev_num) }}" class="page-btn page-prev">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-prev disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            {% endif %}
+                            
+                            <div class="page-numbers">
+                                {% for page_num in fav_pagination.iter_pages() %}
+                                {% if page_num == fav_pagination.page %}
+                                <span class="page-num active">{{ page_num }}</span>
+                                {% else %}
+                                <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=page_num) }}" class="page-num">{{ page_num }}</a>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if fav_pagination.has_next %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=fav_pagination.next_num) }}" class="page-btn page-next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-next disabled">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                            {% endif %}
+                        </nav>
+                    </div>
+                    {% endif %}
                     {% else %}
-                    <p class="text-center">暂无收藏</p>
+                    <div class="empty-state">
+                        <div class="empty-icon favorite-empty">
+                            <i class="far fa-heart"></i>
+                        </div>
+                        <p class="empty-text">暂无收藏</p>
+                        <a href="{{ url_for('recipe.index') }}" class="empty-btn">去发现美食</a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
-            
-
         </div>
     </div>
+
+<style>
+/* ===== 个人信息卡片 ===== */
+.profile-card {
+    background: linear-gradient(145deg, #FFFBF5 0%, #FFF8F0 100%);
+    border-radius: 24px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 
+        0 4px 20px rgba(251, 146, 60, 0.08),
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(254, 215, 170, 0.4);
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: white;
+    font-size: 32px;
+    box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
+}
+
+.profile-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 8px 0;
+}
+
+.profile-email {
+    font-size: 13px;
+    color: #6B7280;
+    margin: 0 0 12px 0;
+}
+
+.profile-date {
+    font-size: 12px;
+    color: #9CA3AF;
+    margin: 0 0 24px 0;
+}
+
+.profile-date i {
+    margin-right: 6px;
+    color: #F97316;
+}
+
+.profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+    color: white;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(236, 72, 153, 0.4);
+    color: white;
+}
+
+.btn-outline {
+    background: white;
+    color: #6B7280;
+    border: 1px solid #E5E7EB;
+}
+
+.btn-outline:hover {
+    border-color: #F97316;
+    color: #F97316;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+    color: white;
+}
+
+/* ===== 内容区块 ===== */
+.content-section {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.06),
+        0 1px 3px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    margin-bottom: 24px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 20px 24px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.section-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.history-icon {
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.favorite-icon {
+    background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.section-title-group {
+    flex: 1;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #92400E;
+    margin: 0 0 4px 0;
+}
+
+.section-subtitle {
+    font-size: 12px;
+    color: #B45309;
+    margin: 0;
+    opacity: 0.8;
+}
+
+.section-body {
+    padding: 20px 24px;
+}
+
+/* ===== 项目网格 ===== */
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.item-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: #F9FAFB;
+    border-radius: 16px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.item-card:hover {
+    background: white;
+    border-color: rgba(249, 115, 22, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.item-image-wrapper {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.item-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.item-card:hover .item-image {
+    transform: scale(1.05);
+}
+
+.item-image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #E5E7EB 0%, #D1D5DB 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+    font-size: 20px;
+}
+
+.item-type-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.type-recipe {
+    background: rgba(249, 115, 22, 0.9);
+    color: white;
+}
+
+.type-post {
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+}
+
+.item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1F2937;
+    margin: 0 0 6px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-card:hover .item-title {
+    color: #EA580C;
+}
+
+.item-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.item-desc {
+    font-size: 12px;
+    color: #6B7280;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.item-card:hover .item-arrow {
+    background: #F97316;
+    color: white;
+}
+
+/* ===== 分页样式 ===== */
+.pagination-wrapper {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #F3F4F6;
+}
+
+.pagination-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.page-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #E5E7EB;
+    color: #6B7280;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(.disabled) {
+    border-color: #F97316;
+    color: #F97316;
+    transform: translateY(-1px);
+}
+
+.page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-numbers {
+    display: flex;
+    gap: 6px;
+}
+
+.page-num {
+    min-width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #E5E7EB;
+    color: #6B7280;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.page-num:hover:not(.active) {
+    border-color: #F97316;
+    color: #F97316;
+}
+
+.page-num.active {
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    border-color: #F97316;
+    color: white;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+    text-align: center;
+    padding: 48px 24px;
+}
+
+.empty-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+}
+
+.empty-icon:not(.favorite-empty) {
+    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+    color: #2563EB;
+}
+
+.favorite-empty {
+    background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
+    color: #DB2777;
+}
+
+.empty-text {
+    font-size: 15px;
+    color: #6B7280;
+    margin: 0 0 20px 0;
+}
+
+.empty-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 24px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+
+.empty-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    color: white;
+}
+
+/* ===== 快捷入口 ===== */
+.quick-links-section {
+    background: white;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+}
+
+.quick-links-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 16px 0;
+}
+
+.quick-links-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.quick-link-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #F9FAFB;
+    border-radius: 16px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.quick-link-card:hover {
+    background: white;
+    border-color: rgba(249, 115, 22, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.quick-link-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.quick-link-content {
+    flex: 1;
+}
+
+.quick-link-content h5 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1F2937;
+    margin: 0 0 4px 0;
+}
+
+.quick-link-content p {
+    font-size: 13px;
+    color: #6B7280;
+    margin: 0;
+}
+
+.quick-link-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9CA3AF;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.quick-link-card:hover .quick-link-arrow {
+    background: #F97316;
+    color: white;
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .profile-card {
+        margin-bottom: 24px;
+    }
+    
+    .items-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-body {
+        padding: 16px;
+    }
+    
+    .item-image-wrapper {
+        width: 64px;
+        height: 64px;
+    }
+    
+    .page-numbers {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+    .items-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
 {% endblock %}

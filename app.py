@@ -96,10 +96,22 @@ def initialize_app():
             db.create_all()
             # 检查过期食材
             check_expired_ingredients()
+            # 初始化推荐器（延迟到第一次请求时）
         initialized = True
 
 # 应用启动时执行初始化
 initialize_app()
+
+# 注册一个before_request处理函数，在第一次请求时初始化推荐器
+def init_recommender_on_first_request():
+    from app.recommendation.hybrid_recommender import init_recommender
+    with app.app_context():
+        init_recommender()
+    # 移除这个处理函数，避免每次请求都执行
+    app.before_request_funcs[None].remove(init_recommender_on_first_request)
+
+# 添加before_request处理函数
+app.before_request(init_recommender_on_first_request)
 
 if __name__ == '__main__':
     # 运行应用

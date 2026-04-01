@@ -147,8 +147,12 @@ def detail(id):
         if existing_favorite:
             favorited = True
     
+    # 获取相关推荐
+    from app.recommendation.hybrid_recommender import recommender
+    related_recipes = recommender.get_recommendations(id, top_n=5)
+    
     db.session.commit()
-    return render_template('recipe/detail.html', recipe=recipe, favorited=favorited)
+    return render_template('recipe/detail.html', recipe=recipe, favorited=favorited, related_recipes=related_recipes)
 
 @bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @admin_required
