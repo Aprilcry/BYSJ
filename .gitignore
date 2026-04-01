@@ -24,3 +24,4 @@
 !/crawler/remote_process.py
 !/crawler/crawl_food_images.py
 !/crawler/train_yolov8.py
+!/crawler/菜谱口味智能调整脚本.py
