@@ -82,6 +82,9 @@ class HybridRecommender:
     def _extract_recipe_features(self, recipes):
         """提取菜谱特征"""
         try:
+            # 重置特征列表
+            self.recipe_features = []
+            
             # 收集所有可能的特征
             all_ingredients = set()
             all_categories = set()

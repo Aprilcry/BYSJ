@@ -6,6 +6,9 @@ os.environ['ULTRALYTICS_CONFIG_DIR'] = os.path.join(os.getcwd(), 'ultralytics_co
 # 从app包导入应用实例
 from app import app, db
 
+# 全局变量，用于标记是否已经初始化
+initialized = False
+
 def check_expired_ingredients():
     """检查过期食材并发送邮件提醒"""
     from app.models import User, UserIngredient, Ingredient, IngredientShelfLife, get_local_time, Message
@@ -109,12 +112,21 @@ initialize_app()
 reset_views()
 
 # 注册一个before_request处理函数，在第一次请求时初始化推荐器
+recommender_initialized = False
+
 def init_recommender_on_first_request():
-    from app.recommendation.hybrid_recommender import init_recommender
-    with app.app_context():
-        init_recommender()
-    # 移除这个处理函数，避免每次请求都执行
-    app.before_request_funcs[None].remove(init_recommender_on_first_request)
+    global recommender_initialized
+    if not recommender_initialized:
+        try:
+            from app.recommendation.hybrid_recommender import init_recommender
+            with app.app_context():
+                init_recommender()
+            recommender_initialized = True
+            print("推荐器初始化完成！")
+        except Exception as e:
+            print(f"推荐器初始化失败: {e}")
+            import traceback
+            traceback.print_exc()
 
 # 添加before_request处理函数
 app.before_request(init_recommender_on_first_request)
