@@ -3,7 +3,20 @@
 {% block content %}
 <div class="row">
     <div class="col-md-8">
-        <h2>{{ recipe.title }}</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>{{ recipe.title }}</h2>
+            <div>
+                {% if current_user.is_authenticated %}
+                <button class="btn {% if favorited %}btn-primary{% else %}btn-secondary{% endif %} favorite-btn" data-target-type="recipe" data-target-id="{{ recipe.id }}">
+                    <i class="{% if favorited %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i> {% if favorited %}已收藏{% else %}收藏{% endif %}
+                </button>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
+                    <i class="fa-regular fa-heart"></i> 收藏
+                </a>
+                {% endif %}
+            </div>
+        </div>
         <p class="text-muted">
             准备时间: {{ recipe.prep_time }}分钟 | 烹饪时间: {{ recipe.cook_time }}分钟 | 难度: {{ recipe.difficulty }} | 分类: {{ recipe.category }}
         </p>
@@ -26,18 +39,6 @@
         <h3>做法</h3>
         <div class="mb-4">
             {{ recipe.instructions|replace('\n', '<br>')|safe }}
-        </div>
-        
-        <div class="mt-4">
-            {% if current_user.is_authenticated %}
-            <button class="btn {% if favorited %}btn-primary{% else %}btn-secondary{% endif %} favorite-btn" data-target-type="recipe" data-target-id="{{ recipe.id }}">
-                <i class="{% if favorited %}fa-solid{% else %}fa-regular{% endif %} fa-heart"></i> {% if favorited %}已收藏{% else %}收藏{% endif %}
-            </button>
-            {% else %}
-            <a href="{{ url_for('auth.login') }}" class="btn btn-secondary">
-                <i class="fa-regular fa-heart"></i> 收藏
-            </a>
-            {% endif %}
         </div>
         
         {% if recipe.video_url %}

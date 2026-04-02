@@ -84,8 +84,6 @@ def check_expired_ingredients():
     
     print("过期食材检查完成")
 
-# 全局变量，用于标记是否已经初始化
-initialized = False
 
 # 使用before_request装饰器，确保这些操作只执行一次
 def initialize_app():
@@ -96,8 +94,6 @@ def initialize_app():
             db.create_all()
             # 检查过期食材
             check_expired_ingredients()
-            # 初始化推荐器（延迟到第一次请求时）
-        initialized = True
 
 def reset_views():
     """重置浏览量"""
@@ -125,4 +121,4 @@ app.before_request(init_recommender_on_first_request)
 
 if __name__ == '__main__':
     # 运行应用
-    app.run(debug=True)
+    app.run(debug=False)
