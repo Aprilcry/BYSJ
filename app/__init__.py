@@ -45,7 +45,7 @@ def load_user(user_id):
 from app.models import User, Ingredient, UserIngredient, Recipe, RecipeIngredient, RecipeView, SearchRecord, Post, Comment, UserActivity, CookingTip, IngredientCategoryMap, IngredientShelfLife, Message
 
 # 导入路由
-from app.routes import auth, user, ingredient, recipe, recommendation, plaza, ai
+from app.routes import auth, user, ingredient, recipe, recommendation, plaza, ai, dashboard
 
 # 注册蓝图
 app.register_blueprint(auth.bp)
@@ -55,6 +55,7 @@ app.register_blueprint(recipe.bp, url_prefix='/recipe')
 app.register_blueprint(recommendation.bp, url_prefix='/recommendation')
 app.register_blueprint(plaza.bp, url_prefix='/plaza')
 app.register_blueprint(ai.bp)
+app.register_blueprint(dashboard.dashboard)
 
 # 根路由
 from flask import render_template

@@ -1,0 +1,670 @@
+{% extends 'base.html' %}
+
+{% block title %}数据视图 - 智慧厨艺辅助系统{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-container {
+        background-color: #f8f9fa;
+        min-height: 100vh;
+    }
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .dashboard-title {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .dashboard-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    .stats-card {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .stats-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #667eea;
+    }
+    .stats-value {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    .stats-label {
+        font-size: 1rem;
+        color: #6c757d;
+    }
+    .chart-card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        transition: box-shadow 0.3s ease;
+    }
+    .chart-card:hover {
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    .chart-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #343a40;
+    }
+    .chart-container {
+        height: 400px;
+        width: 100%;
+    }
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 200px;
+    }
+    @media (max-width: 768px) {
+        .dashboard-title {
+            font-size: 2rem;
+        }
+        .stats-value {
+            font-size: 1.5rem;
+        }
+        .chart-container {
+            height: 300px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- 页面头部 -->
+    <div class="dashboard-header">
+        <div class="container">
+            <h1 class="dashboard-title">数据视图</h1>
+            <p class="dashboard-subtitle">系统数据分析与可视化</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 统计卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stats-value" id="user-count">0</div>
+                    <div class="stats-label">用户总数</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="stats-value" id="recipe-count">0</div>
+                    <div class="stats-label">菜谱数量</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-comment"></i>
+                    </div>
+                    <div class="stats-value" id="post-count">0</div>
+                    <div class="stats-label">帖子数量</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="stats-value" id="total-views">0</div>
+                    <div class="stats-label">总浏览量</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="row">
+            <!-- 折线图：浏览量趋势 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">近30天浏览量趋势</h3>
+                    <div class="chart-container" id="views-trend-chart"></div>
+                </div>
+            </div>
+            <!-- 柱状图：内容分类分布 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">菜谱分类分布</h3>
+                    <div class="chart-container" id="content-distribution-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 饼图：菜谱口味分布 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">菜谱口味分布</h3>
+                    <div class="chart-container" id="recipe-taste-chart"></div>
+                </div>
+            </div>
+            <!-- 环形图：内容浏览量对比 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">内容浏览量对比</h3>
+                    <div class="chart-container" id="content-views-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 热力图：用户增长趋势 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">近30天用户增长趋势</h3>
+                    <div class="chart-container" id="user-growth-chart"></div>
+                </div>
+            </div>
+            <!-- 词云：热门搜索关键词 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">热门搜索关键词</h3>
+                    <div class="chart-container" id="search-keywords-chart"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- 散点图：内容互动率 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">内容互动率TOP10</h3>
+                    <div class="chart-container" id="engagement-rate-chart"></div>
+                </div>
+            </div>
+            <!-- 雷达图：烹饪时间分析 -->
+            <div class="col-lg-6">
+                <div class="chart-card">
+                    <h3 class="chart-title">烹饪时间分析</h3>
+                    <div class="chart-container" id="cooking-time-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 加载数据
+        fetch('/dashboard/data')
+            .then(response => response.json())
+            .then(data => {
+                // 更新统计卡片
+                updateStats(data);
+                // 初始化图表
+                initViewsTrendChart(data.views_trend);
+                initContentDistributionChart(data.content_distribution);
+                initRecipeTasteChart(data.recipe_taste);
+                initContentViewsChart(data.content_views);
+                initUserGrowthChart(data.user_growth);
+                initSearchKeywordsChart(data.search_keywords);
+                initEngagementRateChart(data.engagement_rate);
+                initCookingTimeChart(data.cooking_time_analysis);
+            })
+            .catch(error => {
+                console.error('获取数据失败:', error);
+            });
+    });
+
+    // 更新统计卡片
+    function updateStats(data) {
+        // 使用从API获取的真实数据
+        document.getElementById('user-count').textContent = data.stats.user_count;
+        document.getElementById('recipe-count').textContent = data.stats.recipe_count;
+        document.getElementById('post-count').textContent = data.stats.post_count;
+        document.getElementById('total-views').textContent = data.stats.total_views;
+    }
+
+    // 初始化浏览量趋势折线图
+    function initViewsTrendChart(data) {
+        const chart = echarts.init(document.getElementById('views-trend-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#6a7985'
+                    }
+                }
+            },
+            legend: {
+                data: ['帖子浏览量', '菜谱浏览量'],
+                top: 0
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: data.dates,
+                    axisLabel: {
+                        rotate: 45,
+                        fontSize: 10
+                    }
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value',
+                    name: '浏览量'
+                }
+            ],
+            series: [
+                {
+                    name: '帖子浏览量',
+                    type: 'line',
+                    stack: 'Total',
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(102, 126, 234, 0.6)' },
+                            { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                        ])
+                    },
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: data.post_views
+                },
+                {
+                    name: '菜谱浏览量',
+                    type: 'line',
+                    stack: 'Total',
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(118, 75, 162, 0.6)' },
+                            { offset: 1, color: 'rgba(118, 75, 162, 0.1)' }
+                        ])
+                    },
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: data.recipe_views
+                }
+            ],
+            color: ['#667eea', '#764ba2']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化内容分类分布柱状图
+    function initContentDistributionChart(data) {
+        const chart = echarts.init(document.getElementById('content-distribution-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: data.categories,
+                axisLabel: {
+                    rotate: 45
+                }
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [
+                {
+                    name: '数量',
+                    type: 'bar',
+                    barWidth: '60%',
+                    data: data.data,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#764ba2' },
+                            { offset: 1, color: '#667eea' }
+                        ])
+                    }
+                }
+            ],
+            color: ['#764ba2']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化菜谱口味分布饼图
+    function initRecipeTasteChart(data) {
+        const chart = echarts.init(document.getElementById('recipe-taste-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'item'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left',
+            },
+            series: [
+                {
+                    name: '口味',
+                    type: 'pie',
+                    radius: '70%',
+                    data: data.categories.map((category, index) => ({
+                        value: data.data[index],
+                        name: category
+                    })),
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ],
+            color: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化内容浏览量对比环形图
+    function initContentViewsChart(data) {
+        const chart = echarts.init(document.getElementById('content-views-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'item'
+            },
+            legend: {
+                orient: 'vertical',
+                left: 'left',
+            },
+            series: [
+                {
+                    name: '浏览量',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 10,
+                        borderColor: '#fff',
+                        borderWidth: 2
+                    },
+                    label: {
+                        show: false,
+                        position: 'center'
+                    },
+                    emphasis: {
+                        label: {
+                            show: true,
+                            fontSize: '18',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    labelLine: {
+                        show: false
+                    },
+                    data: [
+                        { value: data.post_views, name: '帖子' },
+                        { value: data.recipe_views, name: '菜谱' }
+                    ]
+                }
+            ],
+            color: ['#667eea', '#764ba2']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化用户增长趋势热力图
+    function initUserGrowthChart(data) {
+        const chart = echarts.init(document.getElementById('user-growth-chart'));
+        const option = {
+            tooltip: {
+                position: 'top'
+            },
+            grid: {
+                height: '50%',
+                top: '10%'
+            },
+            xAxis: {
+                type: 'category',
+                data: data.dates,
+                splitArea: {
+                    show: true
+                },
+                axisLabel: {
+                    rotate: 45,
+                    fontSize: 10
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: ['用户注册'],
+                splitArea: {
+                    show: true
+                }
+            },
+            visualMap: {
+                min: 0,
+                max: Math.max(...data.data),
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                bottom: '5%',
+                inRange: {
+                    color: ['#e0f7fa', '#b2ebf2', '#80deea', '#4dd0e1', '#26c6da', '#00bcd4']
+                }
+            },
+            series: [
+                {
+                    name: '用户增长',
+                    type: 'heatmap',
+                    data: data.data.map((value, index) => [index, 0, value]),
+                    label: {
+                        show: true
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }
+            ]
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化热门搜索关键词词云
+    function initSearchKeywordsChart(data) {
+        const chart = echarts.init(document.getElementById('search-keywords-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'item'
+            },
+            series: [
+                {
+                    type: 'wordCloud',
+                    shape: 'circle',
+                    left: 'center',
+                    top: 'center',
+                    width: '90%',
+                    height: '90%',
+                    right: null,
+                    bottom: null,
+                    sizeRange: [12, 60],
+                    rotationRange: [-45, 45],
+                    rotationStep: 45,
+                    gridSize: 8,
+                    drawOutOfBound: false,
+                    textStyle: {
+                        fontFamily: 'sans-serif',
+                        fontWeight: 'bold',
+                        color: function() {
+                            return 'rgb(' + [
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 160),
+                                Math.round(Math.random() * 255)
+                            ].join(',') + ')';
+                        }
+                    },
+                    emphasis: {
+                        focus: 'self',
+                        textStyle: {
+                            shadowBlur: 10,
+                            shadowColor: '#333'
+                        }
+                    },
+                    data: data.keywords.map((keyword, index) => ({
+                        name: keyword,
+                        value: data.counts[index]
+                    }))
+                }
+            ]
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化内容互动率散点图
+    function initEngagementRateChart(data) {
+        const chart = echarts.init(document.getElementById('engagement-rate-chart'));
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                data: data.titles,
+                axisLabel: {
+                    rotate: 45,
+                    fontSize: 10
+                }
+            },
+            yAxis: {
+                type: 'value',
+                name: '互动率 (%)'
+            },
+            series: [
+                {
+                    name: '互动率',
+                    type: 'bar',
+                    data: data.rates,
+                    itemStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: '#4facfe' },
+                            { offset: 1, color: '#00f2fe' }
+                        ])
+                    }
+                }
+            ],
+            color: ['#4facfe']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+
+    // 初始化烹饪时间分析雷达图
+    function initCookingTimeChart(data) {
+        const chart = echarts.init(document.getElementById('cooking-time-chart'));
+        const option = {
+            tooltip: {},
+            legend: {
+                data: ['准备时间', '烹饪时间'],
+                bottom: 0
+            },
+            radar: {
+                indicator: data.titles.map(title => ({
+                    name: title,
+                    max: Math.max(...data.prep_times, ...data.cook_times) * 1.2
+                }))
+            },
+            series: [
+                {
+                    name: '烹饪时间分析',
+                    type: 'radar',
+                    data: [
+                        {
+                            value: data.prep_times,
+                            name: '准备时间'
+                        },
+                        {
+                            value: data.cook_times,
+                            name: '烹饪时间'
+                        }
+                    ]
+                }
+            ],
+            color: ['#667eea', '#764ba2']
+        };
+        chart.setOption(option);
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    }
+</script>
+{% endblock %}

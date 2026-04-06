@@ -133,4 +133,4 @@ app.before_request(init_recommender_on_first_request)
 
 if __name__ == '__main__':
     # 运行应用
-    app.run(debug=False)
+    app.run(debug=True)
