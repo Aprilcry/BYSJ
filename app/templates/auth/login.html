@@ -318,6 +318,9 @@
                                 <label for="password">密码</label>
                                 <input type="password" class="form-input" id="password" name="password" placeholder="请输入密码" required>
                             </div>
+                            <div class="text-end mb-4">
+                                <a href="{{ url_for('auth.forgot_password') }}" style="color: #667eea; text-decoration: none; font-size: 0.9rem;">忘记密码？</a>
+                            </div>
                             <button type="submit" class="btn btn-primary">登录</button>
                             <a href="{{ url_for('auth.register') }}" class="btn btn-secondary">还没有账号？去注册</a>
                         </form>

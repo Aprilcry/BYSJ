@@ -148,3 +148,75 @@ def send_code():
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
+
+@bp.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    errors = {}
+    if request.method == 'POST':
+        email = request.form['email']
+        verification_code = request.form['verification_code']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+        
+        # 验证邮箱
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            errors['email'] = '邮箱不存在'
+        
+        # 验证验证码
+        if email in verification_codes:
+            code_data = verification_codes[email]
+            if code_data['code'] != verification_code:
+                errors['verification_code'] = '验证码错误'
+            elif code_data['expires_at'] < datetime.utcnow():
+                errors['verification_code'] = '验证码已过期'
+        else:
+            errors['verification_code'] = '请先获取验证码'
+        
+        # 验证密码
+        if len(new_password) < 6:
+            errors['new_password'] = '密码长度至少6位'
+        if new_password != confirm_password:
+            errors['confirm_password'] = '两次输入的密码不一致'
+        
+        if not errors:
+            # 更新密码
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            user.password = hashed_password.decode('utf-8')
+            db.session.commit()
+            
+            # 清除验证码
+            del verification_codes[email]
+            
+            flash('密码重置成功，请登录')
+            return redirect(url_for('auth.login'))
+    
+    return render_template('auth/forgot_password.html', errors=errors)
+
+@bp.route('/send_verification_code', methods=['POST'])
+def send_verification_code():
+    data = request.get_json()
+    email = data.get('email')
+    
+    if not email:
+        return jsonify({'success': False, 'message': '请输入邮箱'})
+    
+    # 检查邮箱是否存在
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'success': False, 'message': '邮箱不存在'})
+    
+    # 生成验证码
+    code = generate_verification_code()
+    
+    # 发送邮件
+    if send_verification_email(email, code):
+        # 保存验证码到内存
+        verification_codes[email] = {
+            'code': code,
+            'expires_at': datetime.utcnow() + timedelta(minutes=10),
+            'username': user.username
+        }
+        return jsonify({'success': True, 'message': '验证码已发送'})
+    else:
+        return jsonify({'success': False, 'message': '验证码发送失败，请检查邮箱地址是否正确'})
