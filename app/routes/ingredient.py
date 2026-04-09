@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import login_required, current_user
-from app.models import Ingredient, UserIngredient
+from app.models import Ingredient, UserIngredient, IngredientShelfLife, IngredientCategoryMap
 from app import db
 import os
 import cv2
@@ -211,3 +211,254 @@ def add_from_camera():
     except Exception as e:
         db.session.rollback()
         return {'success': False, 'message': f'添加失败: {str(e)}'}
+
+# 管理保质期映射
+@bp.route('/shelf-life')
+@login_required
+def manage_shelf_life():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    # 获取所有保质期映射
+    shelf_life_mappings = IngredientShelfLife.query.all()
+    return render_template('ingredient/shelf_life.html', mappings=shelf_life_mappings)
+
+@bp.route('/shelf-life/add', methods=['GET', 'POST'])
+@login_required
+def add_shelf_life():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    if request.method == 'POST':
+        ingredient_name = request.form['ingredient_name']
+        shelf_life_days = request.form['shelf_life_days']
+        
+        # 检查是否已存在
+        existing = IngredientShelfLife.query.filter_by(ingredient_name=ingredient_name).first()
+        if existing:
+            existing.shelf_life_days = shelf_life_days
+        else:
+            new_mapping = IngredientShelfLife(ingredient_name=ingredient_name, shelf_life_days=shelf_life_days)
+            db.session.add(new_mapping)
+        
+        db.session.commit()
+        return redirect(url_for('ingredient.manage_shelf_life'))
+    
+    return render_template('ingredient/add_shelf_life.html')
+
+@bp.route('/shelf-life/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_shelf_life(id):
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    mapping = IngredientShelfLife.query.get(id)
+    if not mapping:
+        return redirect(url_for('ingredient.manage_shelf_life'))
+    
+    if request.method == 'POST':
+        mapping.ingredient_name = request.form['ingredient_name']
+        mapping.shelf_life_days = request.form['shelf_life_days']
+        db.session.commit()
+        return redirect(url_for('ingredient.manage_shelf_life'))
+    
+    return render_template('ingredient/edit_shelf_life.html', mapping=mapping)
+
+@bp.route('/shelf-life/delete/<int:id>')
+@login_required
+def delete_shelf_life(id):
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    mapping = IngredientShelfLife.query.get(id)
+    if mapping:
+        db.session.delete(mapping)
+        db.session.commit()
+    return redirect(url_for('ingredient.manage_shelf_life'))
+
+@bp.route('/shelf-life/batch-delete', methods=['POST'])
+@login_required
+def batch_delete_shelf_life():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return {'success': False, 'message': '无权限操作'}
+    
+    data = request.get_json()
+    mapping_ids = data.get('mapping_ids', [])
+    
+    if not mapping_ids:
+        return {'success': False, 'message': '请选择要删除的记录'}
+    
+    try:
+        for mapping_id in mapping_ids:
+            mapping = IngredientShelfLife.query.get(mapping_id)
+            if mapping:
+                db.session.delete(mapping)
+        db.session.commit()
+        return {'success': True, 'message': '删除成功'}
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': f'删除失败: {str(e)}'}
+
+# 管理食材分类映射
+@bp.route('/category-map')
+@login_required
+def manage_category_map():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    # 获取所有食材
+    all_ingredients = Ingredient.query.all()
+    # 获取所有分类映射
+    category_mappings = IngredientCategoryMap.query.all()
+    
+    # 创建食材名称到分类的映射
+    mapping_dict = {mapping.ingredient_name: mapping for mapping in category_mappings}
+    
+    # 准备展示数据
+    display_data = []
+    for ingredient in all_ingredients:
+        # 检查食材是否已有映射
+        if ingredient.name in mapping_dict:
+            # 已有映射，使用现有映射
+            display_data.append(mapping_dict[ingredient.name])
+        else:
+            # 没有映射，创建临时对象用于展示
+            from collections import namedtuple
+            TempMapping = namedtuple('TempMapping', ['id', 'ingredient_name', 'category'])
+            display_data.append(TempMapping(id=None, ingredient_name=ingredient.name, category='未分类'))
+    
+    return render_template('ingredient/category_map.html', mappings=display_data)
+
+@bp.route('/category-map/add', methods=['GET', 'POST'])
+@login_required
+def add_category_map():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    # 获取URL参数中的食材名称
+    ingredient_name = request.args.get('ingredient_name', '')
+    
+    if request.method == 'POST':
+        ingredient_name = request.form['ingredient_name']
+        category = request.form['category']
+        
+        # 检查是否已存在
+        existing = IngredientCategoryMap.query.filter_by(ingredient_name=ingredient_name).first()
+        if existing:
+            existing.category = category
+        else:
+            new_mapping = IngredientCategoryMap(ingredient_name=ingredient_name, category=category)
+            db.session.add(new_mapping)
+        
+        db.session.commit()
+        return redirect(url_for('ingredient.manage_category_map'))
+    
+    return render_template('ingredient/add_category_map.html', ingredient_name=ingredient_name)
+
+@bp.route('/category-map/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_category_map(id):
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    mapping = IngredientCategoryMap.query.get(id)
+    if not mapping:
+        return redirect(url_for('ingredient.manage_category_map'))
+    
+    if request.method == 'POST':
+        mapping.ingredient_name = request.form['ingredient_name']
+        mapping.category = request.form['category']
+        db.session.commit()
+        return redirect(url_for('ingredient.manage_category_map'))
+    
+    return render_template('ingredient/edit_category_map.html', mapping=mapping)
+
+@bp.route('/category-map/delete/<int:id>')
+@login_required
+def delete_category_map(id):
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    mapping = IngredientCategoryMap.query.get(id)
+    if mapping:
+        db.session.delete(mapping)
+        db.session.commit()
+    return redirect(url_for('ingredient.manage_category_map'))
+
+@bp.route('/category-map/batch-delete', methods=['POST'])
+@login_required
+def batch_delete_category_map():
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return {'success': False, 'message': '无权限操作'}
+    
+    data = request.get_json()
+    mapping_ids = data.get('mapping_ids', [])
+    
+    if not mapping_ids:
+        return {'success': False, 'message': '请选择要删除的记录'}
+    
+    try:
+        for mapping_id in mapping_ids:
+            mapping = IngredientCategoryMap.query.get(mapping_id)
+            if mapping:
+                db.session.delete(mapping)
+        db.session.commit()
+        return {'success': True, 'message': '删除成功'}
+    except Exception as e:
+        db.session.rollback()
+        return {'success': False, 'message': f'删除失败: {str(e)}'}
+
+@bp.route('/delete-ingredient/<string:name>')
+@login_required
+def delete_ingredient_by_name(name):
+    # 检查是否是管理员
+    if not current_user.is_admin:
+        return render_template('403.html'), 403
+    
+    try:
+        # 查找食材
+        ingredient = Ingredient.query.filter_by(name=name).first()
+        if not ingredient:
+            return redirect(url_for('ingredient.manage_category_map'))
+        
+        # 删除引用这个食材的记录
+        from app.models import RecipeIngredient, UserIngredient, IngredientCategoryMap, IngredientShelfLife
+        
+        # 删除recipe_ingredient记录
+        recipe_ingredients = RecipeIngredient.query.filter_by(ingredient_id=ingredient.id).all()
+        for recipe_ingredient in recipe_ingredients:
+            db.session.delete(recipe_ingredient)
+        
+        # 删除user_ingredient记录
+        user_ingredients = UserIngredient.query.filter_by(ingredient_id=ingredient.id).all()
+        for user_ingredient in user_ingredients:
+            db.session.delete(user_ingredient)
+        
+        # 删除ingredient_category_map记录
+        category_mappings = IngredientCategoryMap.query.filter_by(ingredient_name=name).all()
+        for mapping in category_mappings:
+            db.session.delete(mapping)
+        
+        # 删除ingredient_shelf_life记录
+        shelf_life_mappings = IngredientShelfLife.query.filter_by(ingredient_name=name).all()
+        for mapping in shelf_life_mappings:
+            db.session.delete(mapping)
+        
+        # 删除食材
+        db.session.delete(ingredient)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f'删除食材失败: {str(e)}')
+    
+    return redirect(url_for('ingredient.manage_category_map'))

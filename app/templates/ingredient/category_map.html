@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">管理食材分类映射</h1>
+    
+    <div class="mb-3">
+        <a href="{{ url_for('ingredient.add_category_map') }}" class="btn btn-primary">添加分类映射</a>
+        <button id="batch-delete-btn" class="btn btn-danger">批量删除</button>
+    </div>
+    
+    <table class="table table-bordered table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th><input type="checkbox" id="select-all"></th>
+                <th>ID</th>
+                <th>食材名称</th>
+                <th>分类</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for mapping in mappings %}
+            <tr>
+                <td>{% if mapping.id %}<input type="checkbox" class="mapping-checkbox" value="{{ mapping.id }}">{% else %}<input type="checkbox" disabled>{% endif %}</td>
+                <td>{{ mapping.id or 'N/A' }}</td>
+                <td>{{ mapping.ingredient_name }}</td>
+                <td>{{ mapping.category }}</td>
+                <td>
+                    {% if mapping.id %}
+                    <a href="{{ url_for('ingredient.edit_category_map', id=mapping.id) }}" class="btn btn-sm btn-warning">编辑</a>
+                    <a href="{{ url_for('ingredient.delete_category_map', id=mapping.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除分类映射吗？');">删除</a>
+                    {% else %}
+                    <a href="{{ url_for('ingredient.add_category_map') }}?ingredient_name={{ mapping.ingredient_name }}" class="btn btn-sm btn-warning">编辑</a>
+                    <a href="{{ url_for('ingredient.delete_ingredient_by_name', name=mapping.ingredient_name) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除该食材吗？');">删除</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 全选/取消全选
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.mapping-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    // 批量删除
+    document.getElementById('batch-delete-btn').addEventListener('click', function() {
+        const selectedIds = [];
+        const checkboxes = document.querySelectorAll('.mapping-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            selectedIds.push(parseInt(checkbox.value));
+        });
+        
+        if (selectedIds.length === 0) {
+            alert('请选择要删除的记录');
+            return;
+        }
+        
+        if (confirm('确定要删除选中的记录吗？')) {
+            fetch('{{ url_for('ingredient.batch_delete_category_map') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ mapping_ids: selectedIds })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('删除失败');
+            });
+        }
+    });
+</script>
+{% endblock %}

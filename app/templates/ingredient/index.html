@@ -16,6 +16,15 @@
         <button class="btn btn-danger">
             <i class="bi bi-trash"></i> 批量删除
         </button>
+        <!-- 管理员专属按钮 -->
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('ingredient.manage_shelf_life') }}" class="btn btn-info">
+            <i class="bi bi-clock"></i> 管理保质期映射
+        </a>
+        <a href="{{ url_for('ingredient.manage_category_map') }}" class="btn btn-info">
+            <i class="bi bi-tags"></i> 管理分类映射
+        </a>
+        {% endif %}
     </div>
     
     <!-- 搜索和排序 -->
