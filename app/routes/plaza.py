@@ -1,9 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
 from app.models import Post, Comment, User, PostLike, Favorite, PostView, Message
-from app import db
+from app import db, app
 import os
+import uuid
 from datetime import datetime
+import re
 
 # 创建蓝图
 bp = Blueprint('plaza', __name__)
@@ -11,47 +13,62 @@ bp = Blueprint('plaza', __name__)
 @bp.route('/')
 def index():
     search_query = request.args.get('search', '')
+    sort_by = request.args.get('sort', 'newest')  # newest 或 hot
     
     if search_query:
         # 搜索功能
         posts = Post.query.filter(
             (Post.title.contains(search_query)) | 
             (Post.content.contains(search_query))
-        ).order_by(Post.created_at.desc()).all()
+        )
     else:
-        # 推荐算法
-        if current_user.is_authenticated:
-            # 获取用户已查看的帖子
-            viewed_posts = [view.post_id for view in PostView.query.filter_by(user_id=current_user.id).all()]
-            
-            # 获取所有帖子
-            all_posts = Post.query.all()
-            
-            # 计算每个帖子的推荐分数
-            scored_posts = []
-            for post in all_posts:
-                # 基础分数：点赞数 + 浏览数 * 0.1 + 评论数 * 0.5
-                base_score = post.likes + post.views * 0.1 + len(post.comments) * 0.5
-                
-                # 时间衰减因子：越新的帖子分数越高
-                days_since_creation = (datetime.utcnow() - post.created_at).days
-                time_factor = max(0.1, 1 / (1 + days_since_creation * 0.1))
-                
-                # 已查看惩罚：如果用户已查看过该帖子，降低分数
-                viewed_penalty = 0.3 if post.id in viewed_posts else 1.0
-                
-                # 最终分数
-                final_score = base_score * time_factor * viewed_penalty
-                scored_posts.append((post, final_score))
-            
-            # 按分数排序
-            scored_posts.sort(key=lambda x: x[1], reverse=True)
-            posts = [post for post, score in scored_posts]
-        else:
-            # 未登录用户使用时间排序
-            posts = Post.query.order_by(Post.created_at.desc()).all()
+        # 获取所有帖子
+        posts = Post.query
     
-    return render_template('plaza/index.html', posts=posts, search_query=search_query)
+    # 排序
+    if sort_by == 'hot':
+        # 按热度排序：浏览量 + 点赞数 × 2
+        posts = sorted(posts.all(), key=lambda p: p.views + p.likes * 2, reverse=True)
+    else:
+        # 按时间倒序排序
+        posts = posts.order_by(Post.created_at.desc()).all()
+    
+    return render_template('plaza/index.html', posts=posts, search_query=search_query, sort_by=sort_by)
+
+@bp.route('/upload_image', methods=['POST'])
+@login_required
+def upload_image():
+    if 'upload' not in request.files:
+        # 尝试获取'file'字段（兼容其他编辑器）
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        file = request.files['file']
+    else:
+        file = request.files['upload']
+    
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    # 生成安全的文件名
+    ext = os.path.splitext(file.filename)[1].lower()
+    safe_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}{ext}"
+    
+    # 确保上传目录存在
+    upload_folder = app.config.get('UPLOAD_FOLDER', os.path.join(app.root_path, 'static', 'uploads'))
+    os.makedirs(upload_folder, exist_ok=True)
+    
+    # 安全地保存文件（防范路径遍历攻击）
+    file_path = os.path.join(upload_folder, safe_filename)
+    file.save(file_path)
+    
+    # 返回文件URL
+    file_url = f"/static/uploads/{safe_filename}"
+    
+    # CKEditor需要特定的响应格式
+    if 'CKEditorFuncNum' in request.args:
+        return f"<script>window.parent.CKEDITOR.tools.callFunction({request.args.get('CKEditorFuncNum')}, '{file_url}');</script>"
+    else:
+        return jsonify({'location': file_url})
 
 @bp.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -60,25 +77,24 @@ def add():
         title = request.form['title']
         content = request.form['content']
         
-        # 处理图片
-        if 'image' in request.files and request.files['image'].filename != '':
-            image = request.files['image']
-            image_filename = f"{title.replace(' ', '_')}.jpg"
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-            image.save(image_path)
-            image_url = f"/static/uploads/{image_filename}"
-        else:
-            image_url = None
+        # 图片通过富文本编辑器上传，不需要单独处理
+        image_url = None
         
         # 处理视频
+        video_url = None
         if 'video' in request.files and request.files['video'].filename != '':
             video = request.files['video']
-            video_filename = f"{title.replace(' ', '_')}.mp4"
-            video_path = os.path.join(app.config['VIDEO_FOLDER'], video_filename)
-            video.save(video_path)
-            video_url = f"/static/videos/{video_filename}"
-        else:
-            video_url = None
+            ext = os.path.splitext(video.filename)[1].lower()
+            safe_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}{ext}"
+            
+            # 确保视频目录存在
+            video_folder = app.config.get('VIDEO_FOLDER', os.path.join(app.root_path, 'static', 'videos'))
+            os.makedirs(video_folder, exist_ok=True)
+            
+            # 安全地保存文件（防范路径遍历攻击）
+            file_path = os.path.join(video_folder, safe_filename)
+            video.save(file_path)
+            video_url = f"/static/videos/{safe_filename}"
         
         # 创建帖子
         new_post = Post(
@@ -203,11 +219,49 @@ def like(id):
     else:
         return redirect(url_for('plaza.detail', id=id))
 
+@bp.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit(id):
+    post = Post.query.get(id)
+    if not post or (post.user_id != current_user.id and not current_user.is_admin):
+        abort(403)
+    
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        
+        # 图片通过富文本编辑器上传，不需要单独处理
+        
+        # 处理视频
+        if 'video' in request.files and request.files['video'].filename != '':
+            video = request.files['video']
+            ext = os.path.splitext(video.filename)[1].lower()
+            safe_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}{ext}"
+            
+            # 确保视频目录存在
+            video_folder = app.config.get('VIDEO_FOLDER', os.path.join(app.root_path, 'static', 'videos'))
+            os.makedirs(video_folder, exist_ok=True)
+            
+            # 安全地保存文件（防范路径遍历攻击）
+            file_path = os.path.join(video_folder, safe_filename)
+            video.save(file_path)
+            post.video_url = f"/static/videos/{safe_filename}"
+        
+        # 更新帖子
+        post.title = title
+        post.content = content
+        post.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        return redirect(url_for('plaza.detail', id=id))
+    
+    return render_template('plaza/edit.html', post=post)
+
 @bp.route('/delete/<int:id>')
 @login_required
 def delete(id):
     post = Post.query.get(id)
-    if post and post.user_id == current_user.id:
+    if post and (post.user_id == current_user.id or current_user.is_admin):
         # 删除相关评论
         comments = Comment.query.filter_by(post_id=id).all()
         for comment in comments:

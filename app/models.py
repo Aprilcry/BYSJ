@@ -97,9 +97,9 @@ class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    image_url = db.Column(db.String(255))
-    video_url = db.Column(db.String(255))
+    content = db.Column(db.Text, nullable=False)  # 支持HTML格式的图文混排
+    image_url = db.Column(db.String(255))  # 保留用于兼容旧数据
+    video_url = db.Column(db.String(255))  # 保留用于兼容旧数据
     created_at = db.Column(db.DateTime, default=get_local_time)
     updated_at = db.Column(db.DateTime, default=get_local_time, onupdate=get_local_time)
     views = db.Column(db.Integer, default=0)

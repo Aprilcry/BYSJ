@@ -13,16 +13,26 @@
             </div>
         </div>
 
-        <!-- Search and Post Button -->
+        <!-- Search, Sort and Post Button -->
         <div class="plaza-controls">
-            <form action="{{ url_for('plaza.index') }}" method="get" class="search-form">
-                <div class="search-input-wrapper">
-                    <input type="text" name="search" class="search-input" placeholder="搜索美食帖子..." value="{{ search_query }}">
-                    <button type="submit" class="search-btn">
-                        <i class="fas fa-search"></i>
-                    </button>
+            <div class="search-and-sort">
+                <form action="{{ url_for('plaza.index') }}" method="get" class="search-form">
+                    <div class="search-input-wrapper">
+                        <input type="text" name="search" class="search-input" placeholder="搜索美食帖子..." value="{{ search_query }}">
+                        <button type="submit" class="search-btn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                <div class="sort-options">
+                    <a href="{{ url_for('plaza.index', sort='newest', search=search_query) }}" class="sort-btn {% if sort_by == 'newest' %}active{% endif %}">
+                        <i class="fas fa-clock"></i> 最新
+                    </a>
+                    <a href="{{ url_for('plaza.index', sort='hot', search=search_query) }}" class="sort-btn {% if sort_by == 'hot' %}active{% endif %}">
+                        <i class="fas fa-fire"></i> 热门
+                    </a>
                 </div>
-            </form>
+            </div>
             <a href="{{ url_for('plaza.add') }}" class="post-btn">
                 <i class="fas fa-plus"></i> 发布帖子
             </a>
@@ -69,6 +79,13 @@
                             <i class="fas fa-arrow-right"></i> 查看详情
                         </a>
                         {% if current_user.is_authenticated and post.user_id == current_user.id %}
+                        <a href="{{ url_for('plaza.edit', id=post.id) }}" class="action-btn edit-btn">
+                            <i class="fas fa-edit"></i> 编辑
+                        </a>
+                        <a href="{{ url_for('plaza.delete', id=post.id) }}" class="action-btn delete-btn">
+                            <i class="fas fa-trash"></i> 删除
+                        </a>
+                        {% elif current_user.is_authenticated and current_user.is_admin %}
                         <a href="{{ url_for('plaza.delete', id=post.id) }}" class="action-btn delete-btn">
                             <i class="fas fa-trash"></i> 删除
                         </a>
@@ -187,14 +204,51 @@
         .plaza-controls {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             margin-bottom: 30px;
             padding: 0 20px;
         }
 
-        .search-form {
+        .search-and-sort {
             flex: 1;
             max-width: 500px;
+        }
+
+        .search-form {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .sort-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sort-btn {
+            background-color: white;
+            color: var(--text-color);
+            border: 2px solid var(--secondary-color);
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sort-btn:hover {
+            background-color: var(--secondary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .sort-btn.active {
+            background-color: var(--secondary-color);
+            color: white;
         }
 
         .search-input-wrapper {
@@ -429,6 +483,17 @@
             background-color: #45b7aa;
             transform: translateY(-2px);
             color: white;
+        }
+
+        .edit-btn {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+        }
+
+        .edit-btn:hover {
+            background-color: #e6c05a;
+            transform: translateY(-2px);
+            color: var(--text-color);
         }
 
         .delete-btn {

@@ -1,25 +1,30 @@
 {% extends 'base.html' %}
 
-{% block title %}发布帖子 - 智慧厨艺辅助系统{% endblock %}
+{% block title %}编辑帖子 - 智慧厨艺辅助系统{% endblock %}
 
 {% block content %}
-    <h1 class="text-center mb-4">发布帖子</h1>
+    <h1 class="text-center mb-4">编辑帖子</h1>
     <form method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="title" class="form-label">标题</label>
-            <input type="text" class="form-control" id="title" name="title" required>
+            <input type="text" class="form-control" id="title" name="title" value="{{ post.title }}" required>
         </div>
         <div class="mb-3">
             <label for="content" class="form-label">内容</label>
-            <textarea class="form-control" id="content" name="content" rows="10" required></textarea>
+            <textarea class="form-control" id="content" name="content" rows="10" required>{{ post.content }}</textarea>
         </div>
 
         <div class="mb-3">
             <label for="video" class="form-label">视频</label>
             <input type="file" class="form-control" id="video" name="video">
+            {% if post.video_url %}
+            <div class="mt-2">
+                <video src="{{ post.video_url }}" controls style="max-width: 200px;"></video>
+            </div>
+            {% endif %}
         </div>
-        <button type="submit" class="btn btn-primary">发布</button>
-        <a href="{{ url_for('plaza.index') }}" class="btn btn-secondary">取消</a>
+        <button type="submit" class="btn btn-primary">保存修改</button>
+        <a href="{{ url_for('plaza.detail', id=post.id) }}" class="btn btn-secondary">取消</a>
     </form>
 {% endblock %}
 
@@ -63,6 +68,9 @@
                     ]
                 }
             });
+            
+            // 设置初始内容
+            quill.root.innerHTML = contentTextarea.value;
             
             // 监听编辑器内容变化，同步到textarea
             quill.on('text-change', function() {
