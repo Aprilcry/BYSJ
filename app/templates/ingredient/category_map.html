@@ -22,17 +22,17 @@
         <tbody>
             {% for mapping in mappings %}
             <tr>
-                <td>{% if mapping.id %}<input type="checkbox" class="mapping-checkbox" value="{{ mapping.id }}">{% else %}<input type="checkbox" disabled>{% endif %}</td>
+                <td><input type="checkbox" class="mapping-checkbox" value="{{ mapping.id or mapping.ingredient_name }}" data-type="{{ 'mapping' if mapping.id else 'ingredient' }}"></td>
                 <td>{{ mapping.id or 'N/A' }}</td>
                 <td>{{ mapping.ingredient_name }}</td>
                 <td>{{ mapping.category }}</td>
                 <td>
                     {% if mapping.id %}
                     <a href="{{ url_for('ingredient.edit_category_map', id=mapping.id) }}" class="btn btn-sm btn-warning">编辑</a>
-                    <a href="{{ url_for('ingredient.delete_category_map', id=mapping.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除分类映射吗？');">删除</a>
+                    <a href="{{ url_for('ingredient.delete_category_map', id=mapping.id) }}" class="btn btn-sm btn-danger">删除</a>
                     {% else %}
                     <a href="{{ url_for('ingredient.add_category_map') }}?ingredient_name={{ mapping.ingredient_name }}" class="btn btn-sm btn-warning">编辑</a>
-                    <a href="{{ url_for('ingredient.delete_ingredient_by_name', name=mapping.ingredient_name) }}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除该食材吗？');">删除</a>
+                    <a href="{{ url_for('ingredient.delete_ingredient_by_name', name=mapping.ingredient_name) }}" class="btn btn-sm btn-danger">删除</a>
                     {% endif %}
                 </td>
             </tr>
@@ -50,40 +50,71 @@
         });
     });
     
+
     // 批量删除
     document.getElementById('batch-delete-btn').addEventListener('click', function() {
-        const selectedIds = [];
+        const selectedItems = [];
         const checkboxes = document.querySelectorAll('.mapping-checkbox:checked');
         checkboxes.forEach(checkbox => {
-            selectedIds.push(parseInt(checkbox.value));
+            selectedItems.push({
+                value: checkbox.value,
+                type: checkbox.getAttribute('data-type')
+            });
         });
         
-        if (selectedIds.length === 0) {
+        if (selectedItems.length === 0) {
             alert('请选择要删除的记录');
             return;
         }
         
-        if (confirm('确定要删除选中的记录吗？')) {
+        // 分类映射和食材分开处理
+        const mappingIds = selectedItems.filter(item => item.type === 'mapping').map(item => parseInt(item.value));
+        const ingredientNames = selectedItems.filter(item => item.type === 'ingredient').map(item => item.value);
+        
+        // 先处理分类映射
+        if (mappingIds.length > 0) {
             fetch('{{ url_for('ingredient.batch_delete_category_map') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({ mapping_ids: selectedIds })
+                body: JSON.stringify({ mapping_ids: mappingIds })
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    location.reload();
+                // 处理食材删除
+                if (ingredientNames.length > 0) {
+                    // 逐个删除食材
+                    let deletedCount = 0;
+                    ingredientNames.forEach(name => {
+                        fetch(`/ingredient/delete-ingredient/${encodeURIComponent(name)}`)
+                        .then(() => {
+                            deletedCount++;
+                            if (deletedCount === ingredientNames.length) {
+                                location.reload();
+                            }
+                        });
+                    });
                 } else {
-                    alert(data.message);
+                    location.reload();
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
                 alert('删除失败');
+            });
+        } else if (ingredientNames.length > 0) {
+            // 只处理食材删除
+            let deletedCount = 0;
+            ingredientNames.forEach(name => {
+                fetch(`/ingredient/delete-ingredient/${encodeURIComponent(name)}`)
+                .then(() => {
+                    deletedCount++;
+                    if (deletedCount === ingredientNames.length) {
+                        location.reload();
+                    }
+                });
             });
         }
     });

@@ -219,6 +219,8 @@ def delete(id):
     # 删除相关的RecipeView和RecipeIngredient记录
     RecipeView.query.filter_by(recipe_id=id).delete()
     RecipeIngredient.query.filter_by(recipe_id=id).delete()
+    # 删除相关的收藏记录
+    Favorite.query.filter_by(target_type='recipe', target_id=id).delete()
     # 删除菜谱
     db.session.delete(recipe)
     db.session.commit()

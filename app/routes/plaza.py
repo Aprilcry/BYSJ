@@ -212,6 +212,18 @@ def delete(id):
         comments = Comment.query.filter_by(post_id=id).all()
         for comment in comments:
             db.session.delete(comment)
+        # 删除相关的点赞记录
+        post_likes = PostLike.query.filter_by(post_id=id).all()
+        for like in post_likes:
+            db.session.delete(like)
+        # 删除相关的浏览记录
+        post_views = PostView.query.filter_by(post_id=id).all()
+        for view in post_views:
+            db.session.delete(view)
+        # 删除相关的收藏记录
+        favorites = Favorite.query.filter_by(target_type='post', target_id=id).all()
+        for favorite in favorites:
+            db.session.delete(favorite)
         # 删除帖子
         db.session.delete(post)
         db.session.commit()
