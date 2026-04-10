@@ -269,17 +269,13 @@ def search_videos():
         if not link.startswith('https:'):
             link = 'https:' + link
         output.append(f"最终选择视频: {title} - {link}")
-        
-        # 更新数据库
-        recipe.video_url = link
-        db.session.commit()
-        output.append(f"已更新 {recipe.title} 的视频URL")
+        output.append(f"注意：视频URL未更新到数据库，需要点击'使用此视频'按钮才会更新")
         
         return jsonify({
             'recipe': {
                 'id': recipe.id,
                 'title': recipe.title,
-                'video_url': recipe.video_url
+                'video_url': link  # 返回爬取到的视频URL，但不更新数据库
             },
             'page': page,
             'video_index': video_index,
