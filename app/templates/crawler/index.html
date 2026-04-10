@@ -111,7 +111,7 @@
                     <label for="recipeSearch" class="form-label">搜索菜谱</label>
                     <input type="text" class="form-control" id="recipeSearch" placeholder="输入菜谱名称进行搜索">
                 </div>
-                <div id="recipeList" class="list-group mb-4">
+                <div id="recipeList" class="list-group mb-4" style="max-height: 400px; overflow-y: auto;">
                     <!-- 菜谱列表将通过JavaScript动态生成 -->
                 </div>
                 <div id="recipeImages" class="mt-4" style="display: none;">
@@ -183,21 +183,29 @@
     });
     
     // 菜谱搜索
-    document.getElementById('recipeSearch').addEventListener('input', function() {
-        const keyword = this.value.trim();
-        
-        fetch(`{{ url_for('crawler.search_recipes') }}?keyword=${encodeURIComponent(keyword)}`)
+    let currentPage = 1;
+    let currentKeyword = '';
+    
+    function loadRecipes(keyword = '', page = 1) {
+        fetch(`{{ url_for('crawler.search_recipes') }}?keyword=${encodeURIComponent(keyword)}&page=${page}&per_page=20`)
         .then(response => response.json())
         .then(data => {
             const recipeList = document.getElementById('recipeList');
-            recipeList.innerHTML = '';
             
-            data.forEach(recipe => {
+            // 如果是第一页，清空列表
+            if (page === 1) {
+                recipeList.innerHTML = '';
+            }
+            
+            data.recipes.forEach(recipe => {
                 const item = document.createElement('div');
                 item.className = 'list-group-item list-group-item-action';
                 item.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center">
-                        <span>${recipe.title}</span>
+                        <div class="d-flex align-items-center">
+                            ${recipe.current_image ? `<img src="${recipe.current_image}" alt="${recipe.title}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">` : ''}
+                            <span>${recipe.title}</span>
+                        </div>
                         <button class="btn btn-sm btn-primary" data-recipe-id="${recipe.id}">爬取封面</button>
                     </div>
                 `;
@@ -211,37 +219,30 @@
                     fetchRecipeImages(recipeId, 0);
                 });
             });
+            
+            // 保存当前状态
+            currentPage = page;
+            currentKeyword = keyword;
         });
+    }
+    
+    // 菜谱搜索
+    document.getElementById('recipeSearch').addEventListener('input', function() {
+        const keyword = this.value.trim();
+        loadRecipes(keyword, 1);
     });
     
     // 初始加载菜谱列表
     window.addEventListener('load', function() {
-        fetch('{{ url_for('crawler.search_recipes') }}')
-        .then(response => response.json())
-        .then(data => {
-            const recipeList = document.getElementById('recipeList');
-            recipeList.innerHTML = '';
-            
-            data.forEach(recipe => {
-                const item = document.createElement('div');
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>${recipe.title}</span>
-                        <button class="btn btn-sm btn-primary" data-recipe-id="${recipe.id}">爬取封面</button>
-                    </div>
-                `;
-                recipeList.appendChild(item);
-            });
-            
-            // 添加爬取封面按钮事件
-            document.querySelectorAll('[data-recipe-id]').forEach(button => {
-                button.addEventListener('click', function() {
-                    const recipeId = this.getAttribute('data-recipe-id');
-                    fetchRecipeImages(recipeId, 0);
-                });
-            });
-        });
+        loadRecipes();
+    });
+    
+    // 添加滚动加载
+    document.getElementById('recipeList').addEventListener('scroll', function() {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 10) {
+            // 滚动到底部，加载更多
+            loadRecipes(currentKeyword, currentPage + 1);
+        }
     });
     
     // 获取菜谱图片

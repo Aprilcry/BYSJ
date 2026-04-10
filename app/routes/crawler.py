@@ -60,10 +60,17 @@ def food_images():
         with open(script_path, 'w', encoding='utf-8') as f:
             f.write(new_content)
         
-        # 运行爬虫
-        result = subprocess.run([sys.executable, script_path], 
-                              capture_output=True, text=True, 
-                              cwd=os.path.dirname(script_path))
+        # 运行爬虫，添加超时处理
+        try:
+            result = subprocess.run([sys.executable, script_path], 
+                                  capture_output=True, text=True, 
+                                  cwd=os.path.dirname(script_path),
+                                  timeout=300)  # 5分钟超时
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                'success': False,
+                'error': '爬取超时，请尝试减少食材数量或稍后再试'
+            })
         
         # 恢复原始food_list
         with open(script_path, 'w', encoding='utf-8') as f:
@@ -88,17 +95,31 @@ def recipe_covers():
 def search_recipes():
     """搜索菜谱"""
     keyword = request.args.get('keyword', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
     recipes = []
     if keyword:
-        recipes = Recipe.query.filter(Recipe.title.contains(keyword)).limit(10).all()
+        recipes = Recipe.query.filter(Recipe.title.contains(keyword)).offset((page-1)*per_page).limit(per_page).all()
     else:
-        recipes = Recipe.query.limit(10).all()
+        recipes = Recipe.query.offset((page-1)*per_page).limit(per_page).all()
     
-    return jsonify([{
-        'id': recipe.id,
-        'title': recipe.title,
-        'current_image': recipe.image_url
-    } for recipe in recipes])
+    # 获取总数量
+    if keyword:
+        total = Recipe.query.filter(Recipe.title.contains(keyword)).count()
+    else:
+        total = Recipe.query.count()
+    
+    return jsonify({
+        'recipes': [{
+            'id': recipe.id,
+            'title': recipe.title,
+            'current_image': recipe.image_url
+        } for recipe in recipes],
+        'total': total,
+        'page': page,
+        'per_page': per_page
+    })
 
 @bp.route('/api/recipe_images')
 def get_recipe_images():
@@ -161,6 +182,8 @@ def video_crawler():
 def search_videos():
     """搜索视频"""
     recipe_id = request.args.get('recipe_id', type=int)
+    page = request.args.get('page', 1, type=int)
+    video_index = request.args.get('video_index', 0, type=int)
     
     if not recipe_id:
         return jsonify({'error': '缺少菜谱ID'})
@@ -169,44 +192,115 @@ def search_videos():
     if not recipe:
         return jsonify({'error': '菜谱不存在'})
     
-    # 运行视频爬虫脚本
-    script_path = os.path.join(app.root_path, '..', 'crawler', 'video_crawler.py')
+    # 直接实现视频搜索逻辑，避免模块导入错误
+    import requests
+    from bs4 import BeautifulSoup
     
-    # 临时修改脚本，只处理指定菜谱
-    with open(script_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    # 构建搜索关键词
+    search_keyword = f"{recipe.title} 做法 教程 菜谱"
+    url = f"https://search.bilibili.com/all?keyword={requests.utils.quote(search_keyword)}&page={page}"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
     
-    # 替换获取菜谱部分
-    import re
-    new_content = re.sub(r'recipes = Recipe.query.all\(\)', 
-                        f'recipes = [Recipe.query.get({recipe_id})] if Recipe.query.get({recipe_id}) else []', 
-                        content)
+    output = []
+    output.append(f"搜索关键词: {search_keyword}")
+    output.append(f"搜索URL: {url}")
+    output.append(f"当前页码: {page}")
+    output.append(f"视频索引: {video_index}")
     
-    # 写回修改后的内容
-    temp_script = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8')
-    temp_script.write(new_content)
-    temp_script.close()
-    
-    # 运行脚本
-    result = subprocess.run([sys.executable, temp_script.name], 
-                          capture_output=True, text=True, 
-                          cwd=os.path.dirname(script_path))
-    
-    # 删除临时脚本
-    os.unlink(temp_script.name)
-    
-    # 重新获取菜谱信息
-    recipe = Recipe.query.get(recipe_id)
-    
-    return jsonify({
-        'recipe': {
-            'id': recipe.id,
-            'title': recipe.title,
-            'video_url': recipe.video_url
-        },
-        'output': result.stdout,
-        'error': result.stderr
-    })
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        output.append(f"响应状态码: {response.status_code}")
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        page_title = soup.title.text if soup.title else '无标题'
+        output.append(f"页面标题: {page_title}")
+        
+        # 查找视频列表
+        video_items = soup.select('.bili-video-card__wrap')
+        output.append(f"找到 .bili-video-card__wrap 数量: {len(video_items)}")
+        if not video_items:
+            video_items = soup.select('.video-card')
+            output.append(f"找到 .video-card 数量: {len(video_items)}")
+        if not video_items:
+            video_items = soup.select('.video-item')
+            output.append(f"找到 .video-item 数量: {len(video_items)}")
+        
+        if not video_items:
+            output.append(f"未找到视频列表: {page_title}")
+            return jsonify({
+                'recipe': {
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'video_url': recipe.video_url
+                },
+                'page': page,
+                'video_index': video_index,
+                'output': '\n'.join(output),
+                'error': '未找到视频列表'
+            })
+        
+        # 确保索引不超出范围
+        if video_index >= len(video_items):
+            output.append(f"视频索引 {video_index} 超出范围，使用最后一个视频")
+            video_index = len(video_items) - 1
+        
+        # 选择指定索引的视频
+        selected_item = video_items[video_index]
+        link = selected_item.select_one('a')['href']
+        
+        # 尝试不同的选择器提取标题
+        title_elem = selected_item.select_one('.bili-video-card__info__title')
+        if not title_elem:
+            title_elem = selected_item.select_one('.video-card__info__title')
+        if not title_elem:
+            title_elem = selected_item.select_one('.title')
+        if not title_elem:
+            title_elem = selected_item.select_one('h3')
+        if not title_elem:
+            title_elem = selected_item.select_one('a')
+        title = title_elem.text.strip() if title_elem else '无标题'
+        title = title.replace('\n', '').replace('\t', '').strip()
+        output.append(f"选择视频 {video_index+1}: {title} - {link}")
+        
+        # 构建完整的视频URL
+        if not link.startswith('https:'):
+            link = 'https:' + link
+        output.append(f"最终选择视频: {title} - {link}")
+        
+        # 更新数据库
+        recipe.video_url = link
+        db.session.commit()
+        output.append(f"已更新 {recipe.title} 的视频URL")
+        
+        return jsonify({
+            'recipe': {
+                'id': recipe.id,
+                'title': recipe.title,
+                'video_url': recipe.video_url
+            },
+            'page': page,
+            'video_index': video_index,
+            'output': '\n'.join(output),
+            'error': ''
+        })
+    except Exception as e:
+        import traceback
+        error_message = f"{e}\n{traceback.format_exc()}"
+        output.append(f"搜索B站视频失败: {e}")
+        return jsonify({
+            'recipe': {
+                'id': recipe.id,
+                'title': recipe.title,
+                'video_url': recipe.video_url
+            },
+            'page': page,
+            'video_index': video_index,
+            'output': '\n'.join(output),
+            'error': error_message
+        })
 
 @bp.route('/douguo_crawler')
 def douguo_crawler():

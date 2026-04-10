@@ -17,7 +17,7 @@
                         <label for="recipeSearch" class="form-label">搜索菜谱</label>
                         <input type="text" class="form-control" id="recipeSearch" placeholder="输入菜谱名称进行搜索">
                     </div>
-                    <div id="recipeList" class="list-group">
+                    <div id="recipeList" class="list-group" style="max-height: 500px; overflow-y: auto;">
                         <!-- 菜谱列表将通过JavaScript动态生成 -->
                     </div>
                 </div>
@@ -60,75 +60,87 @@
 
 <script>
     let currentRecipeId = null;
+    let currentVideoPage = 1;
+    let currentVideoIndex = 0;
+    
+    // 菜谱搜索
+    let currentPage = 1;
+    let currentKeyword = '';
+    
+    function loadRecipes(keyword = '', page = 1) {
+        fetch(`{{ url_for('crawler.search_recipes') }}?keyword=${encodeURIComponent(keyword)}&page=${page}&per_page=20`)
+        .then(response => response.json())
+        .then(data => {
+            const recipeList = document.getElementById('recipeList');
+            
+            // 如果是第一页，清空列表
+            if (page === 1) {
+                recipeList.innerHTML = '';
+            }
+            
+            data.recipes.forEach(recipe => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            ${recipe.current_image ? `<img src="${recipe.current_image}" alt="${recipe.title}" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">` : ''}
+                            <span>${recipe.title}</span>
+                        </div>
+                        <button class="btn btn-sm btn-primary" data-recipe-id="${recipe.id}">爬取视频</button>
+                    </div>
+                `;
+                recipeList.appendChild(item);
+            });
+            
+            // 添加爬取视频按钮事件
+            document.querySelectorAll('[data-recipe-id]').forEach(button => {
+                button.addEventListener('click', function() {
+                    currentRecipeId = this.getAttribute('data-recipe-id');
+                    currentVideoPage = 1; // 重置页码
+                    currentVideoIndex = 0; // 重置视频索引
+                    fetchVideo(currentRecipeId, currentVideoPage, currentVideoIndex);
+                });
+            });
+            
+            // 保存当前状态
+            currentPage = page;
+            currentKeyword = keyword;
+        });
+    }
     
     // 菜谱搜索
     document.getElementById('recipeSearch').addEventListener('input', function() {
         const keyword = this.value.trim();
-        
-        fetch(`{{ url_for('crawler.search_recipes') }}?keyword=${encodeURIComponent(keyword)}`)
-        .then(response => response.json())
-        .then(data => {
-            const recipeList = document.getElementById('recipeList');
-            recipeList.innerHTML = '';
-            
-            data.forEach(recipe => {
-                const item = document.createElement('div');
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>${recipe.title}</span>
-                        <button class="btn btn-sm btn-primary" data-recipe-id="${recipe.id}">爬取视频</button>
-                    </div>
-                `;
-                recipeList.appendChild(item);
-            });
-            
-            // 添加爬取视频按钮事件
-            document.querySelectorAll('[data-recipe-id]').forEach(button => {
-                button.addEventListener('click', function() {
-                    currentRecipeId = this.getAttribute('data-recipe-id');
-                    fetchVideo(currentRecipeId);
-                });
-            });
-        });
+        loadRecipes(keyword, 1);
     });
     
     // 初始加载菜谱列表
     window.addEventListener('load', function() {
-        fetch('{{ url_for('crawler.search_recipes') }}')
-        .then(response => response.json())
-        .then(data => {
-            const recipeList = document.getElementById('recipeList');
-            recipeList.innerHTML = '';
-            
-            data.forEach(recipe => {
-                const item = document.createElement('div');
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>${recipe.title}</span>
-                        <button class="btn btn-sm btn-primary" data-recipe-id="${recipe.id}">爬取视频</button>
-                    </div>
-                `;
-                recipeList.appendChild(item);
-            });
-            
-            // 添加爬取视频按钮事件
-            document.querySelectorAll('[data-recipe-id]').forEach(button => {
-                button.addEventListener('click', function() {
-                    currentRecipeId = this.getAttribute('data-recipe-id');
-                    fetchVideo(currentRecipeId);
-                });
-            });
-        });
+        loadRecipes();
+    });
+    
+    // 添加滚动加载
+    document.getElementById('recipeList').addEventListener('scroll', function() {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 10) {
+            // 滚动到底部，加载更多
+            loadRecipes(currentKeyword, currentPage + 1);
+        }
     });
     
     // 获取视频
-    function fetchVideo(recipeId) {
-        fetch(`{{ url_for('crawler.search_videos') }}?recipe_id=${recipeId}`)
+    function fetchVideo(recipeId, page, videoIndex) {
+        console.log(`[视频爬虫] 开始爬取菜谱ID: ${recipeId}，页码: ${page}，视频索引: ${videoIndex}`);
+        
+        fetch(`{{ url_for('crawler.search_videos') }}?recipe_id=${recipeId}&page=${page}&video_index=${videoIndex}`)
         .then(response => response.json())
         .then(data => {
+            console.log(`[视频爬虫] 爬取结果:`, data);
+            console.log(`[视频爬虫] 输出信息:`, data.output);
+            
             if (data.recipe.video_url) {
+                console.log(`[视频爬虫] 爬取到视频: ${data.recipe.video_url}`);
+                
                 const videoPlayer = document.getElementById('videoPlayer');
                 const noVideo = document.getElementById('noVideo');
                 const bilibiliPlayer = document.getElementById('bilibiliPlayer');
@@ -146,20 +158,38 @@
                     const bvid = bvMatch[0];
                     // 使用B站外链播放器
                     bilibiliPlayer.src = `//player.bilibili.com/player.html?bvid=${bvid}`;
+                    console.log(`[视频爬虫] 提取到BV号: ${bvid}`);
                 } else {
                     bilibiliPlayer.src = data.recipe.video_url;
+                    console.log(`[视频爬虫] 直接使用视频URL`);
                 }
                 
                 videoTitle.textContent = data.recipe.title;
                 videoUrl.textContent = data.recipe.video_url;
+                
+                // 更新当前页码和视频索引
+                currentVideoPage = data.page;
+                currentVideoIndex = data.video_index;
+                console.log(`[视频爬虫] 更新状态: 页码=${currentVideoPage}, 视频索引=${currentVideoIndex}`);
+            } else {
+                console.log(`[视频爬虫] 未找到视频`);
             }
+        })
+        .catch(error => {
+            console.error(`[视频爬虫] 错误:`, error);
         });
     }
     
     // 下一个视频
     document.getElementById('nextVideo').addEventListener('click', function() {
         if (currentRecipeId) {
-            fetchVideo(currentRecipeId);
+            // 增加视频索引，每页36个视频
+            currentVideoIndex += 1;
+            if (currentVideoIndex >= 36) {
+                currentVideoIndex = 0;
+                currentVideoPage += 1;
+            }
+            fetchVideo(currentRecipeId, currentVideoPage, currentVideoIndex);
         }
     });
     
