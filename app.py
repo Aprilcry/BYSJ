@@ -102,9 +102,12 @@ def reset_views():
     """重置浏览量"""
     try:
         from check.views_reset import check_and_reset_views
-        check_and_reset_views()
+        with app.app_context():
+            check_and_reset_views()
     except Exception as e:
         print(f"浏览量重置错误: {e}")
+        import traceback
+        traceback.print_exc()
 
 # 应用启动时执行初始化
 initialize_app()

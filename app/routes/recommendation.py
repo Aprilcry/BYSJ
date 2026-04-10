@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, jsonify
 from flask_login import login_required, current_user
-from app.models import Recipe, Ingredient, UserIngredient
+from app.models import Recipe, Ingredient, UserIngredient, RecipeView
 from app import db
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 # 创建蓝图
 bp = Blueprint('recommendation', __name__)
@@ -81,35 +83,108 @@ def api_ranking():
         # 获取排行榜类型
         ranking_type = request.args.get('type', 'total')
         
-        # 使用ORM查询
-        # 按不同类型排序
+        # 转换为JSON格式
+        result_list = []
+        
         if ranking_type == 'total':
             # 按总浏览量排序
             recipes = Recipe.query.order_by(Recipe.views.desc()).limit(5).all()
+            for recipe in recipes:
+                # 计算最近30天的浏览量
+                thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+                month_views = db.session.query(func.count(RecipeView.id)).filter(
+                    RecipeView.recipe_id == recipe.id,
+                    RecipeView.viewed_at >= thirty_days_ago
+                ).scalar() or 0
+                
+                recipe_data = {
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'description': recipe.description,
+                    'image_url': recipe.image_url,
+                    'views': recipe.views,
+                    'month_views': month_views,
+                    'day_views': recipe.day_views
+                }
+                result_list.append(recipe_data)
         elif ranking_type == 'month':
-            # 按月浏览量排序
-            recipes = Recipe.query.order_by(Recipe.month_views.desc()).limit(5).all()
+            # 按最近30天浏览量排序
+            # 计算每个菜谱的最近30天浏览量
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            
+            # 使用子查询计算每个菜谱的最近30天浏览量
+            monthly_views = db.session.query(
+                RecipeView.recipe_id,
+                func.count(RecipeView.id).label('monthly_count')
+            ).filter(
+                RecipeView.viewed_at >= thirty_days_ago
+            ).group_by(
+                RecipeView.recipe_id
+            ).subquery()
+            
+            # 按最近30天浏览量排序
+            recipes = db.session.query(
+                Recipe,
+                monthly_views.c.monthly_count
+            ).outerjoin(
+                monthly_views, Recipe.id == monthly_views.c.recipe_id
+            ).order_by(
+                (monthly_views.c.monthly_count or 0).desc()
+            ).limit(5).all()
+            
+            for recipe, month_views in recipes:
+                recipe_data = {
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'description': recipe.description,
+                    'image_url': recipe.image_url,
+                    'views': recipe.views,
+                    'month_views': month_views or 0,
+                    'day_views': recipe.day_views
+                }
+                result_list.append(recipe_data)
         elif ranking_type == 'day':
             # 按日浏览量排序
             recipes = Recipe.query.order_by(Recipe.day_views.desc()).limit(5).all()
+            for recipe in recipes:
+                # 计算最近30天的浏览量
+                thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+                month_views = db.session.query(func.count(RecipeView.id)).filter(
+                    RecipeView.recipe_id == recipe.id,
+                    RecipeView.viewed_at >= thirty_days_ago
+                ).scalar() or 0
+                
+                recipe_data = {
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'description': recipe.description,
+                    'image_url': recipe.image_url,
+                    'views': recipe.views,
+                    'month_views': month_views,
+                    'day_views': recipe.day_views
+                }
+                result_list.append(recipe_data)
         else:
             # 默认按总浏览量排序
             recipes = Recipe.query.order_by(Recipe.views.desc()).limit(5).all()
-        
-        # 转换为JSON格式
-        result_list = []
-        for recipe in recipes:
-            # 构建响应数据
-            recipe_data = {
-                'id': recipe.id,
-                'title': recipe.title,
-                'description': recipe.description,
-                'image_url': recipe.image_url,
-                'views': recipe.views,
-                'month_views': recipe.month_views,
-                'day_views': recipe.day_views
-            }
-            result_list.append(recipe_data)
+            for recipe in recipes:
+                # 计算最近30天的浏览量
+                thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+                month_views = db.session.query(func.count(RecipeView.id)).filter(
+                    RecipeView.recipe_id == recipe.id,
+                    RecipeView.viewed_at >= thirty_days_ago
+                ).scalar() or 0
+                
+                recipe_data = {
+                    'id': recipe.id,
+                    'title': recipe.title,
+                    'description': recipe.description,
+                    'image_url': recipe.image_url,
+                    'views': recipe.views,
+                    'month_views': month_views,
+                    'day_views': recipe.day_views
+                }
+                result_list.append(recipe_data)
         
         return jsonify(result_list)
     except Exception as e:

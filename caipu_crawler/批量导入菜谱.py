@@ -84,7 +84,6 @@ with open(csv_file, 'r', encoding='utf-8') as infile:
             'difficulty': DEFAULT_DIFFICULTY,
             'taste': DEFAULT_TASTE,
             'views': 0,
-            'month_views': 0,
             'day_views': 0,
             'main_ingredients': row['主料'],
             'auxiliary_ingredients': row['辅料']
@@ -116,8 +115,8 @@ try:
             
             # 插入数据
             query = """
-                INSERT INTO recipe (title, description, instructions, category, prep_time, cook_time, difficulty, taste, views, month_views, day_views)
-                VALUES (%(title)s, %(description)s, %(instructions)s, %(category)s, %(prep_time)s, %(cook_time)s, %(difficulty)s, %(taste)s, %(views)s, %(month_views)s, %(day_views)s)
+                INSERT INTO recipe (title, description, instructions, category, prep_time, cook_time, difficulty, taste, views, day_views)
+                VALUES (%(title)s, %(description)s, %(instructions)s, %(category)s, %(prep_time)s, %(cook_time)s, %(difficulty)s, %(taste)s, %(views)s, %(day_views)s)
             """
             cursor.execute(query, recipe)
             recipe_id = cursor.lastrowid

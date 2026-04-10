@@ -59,7 +59,6 @@ class Recipe(db.Model):
     taste = db.Column(db.String(20), nullable=False, default='咸口')  # 口味
     created_at = db.Column(db.DateTime, default=get_local_time)
     views = db.Column(db.Integer, default=0)
-    month_views = db.Column(db.Integer, default=0)
     day_views = db.Column(db.Integer, default=0)
     ingredients = db.relationship('RecipeIngredient', backref='recipe', lazy=True)
     recipe_views = db.relationship('RecipeView', backref='recipe', lazy=True)

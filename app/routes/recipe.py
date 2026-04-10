@@ -124,7 +124,6 @@ def detail(id):
     recipe = Recipe.query.get(id)
     # 增加浏览量
     recipe.views += 1
-    recipe.month_views += 1
     recipe.day_views += 1
     
     # 记录浏览历史
