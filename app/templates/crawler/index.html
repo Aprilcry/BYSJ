@@ -247,29 +247,40 @@
     
     // 获取菜谱图片
     function fetchRecipeImages(recipeId, offset) {
+        console.log(`[封面爬虫] 开始爬取菜谱ID: ${recipeId}，偏移量: ${offset}`);
+        
         fetch(`{{ url_for('crawler.get_recipe_images') }}?recipe_id=${recipeId}&offset=${offset}`)
         .then(response => response.json())
         .then(data => {
+            console.log(`[封面爬虫] 爬取结果:`, data);
+            
             const recipeImages = document.getElementById('recipeImages');
             const imageGrid = document.getElementById('imageGrid');
             
             recipeImages.style.display = 'block';
             imageGrid.innerHTML = '';
             
-            // 这里简化处理，实际应该解析爬取的图片
-            // 由于批量添加菜谱封面图片脚本直接更新数据库，这里显示当前图片
-            if (data.recipe.current_image) {
-                const imageCol = document.createElement('div');
-                imageCol.className = 'col-md-4 mb-3';
-                imageCol.innerHTML = `
-                    <div class="card">
-                        <img src="${data.recipe.current_image}" class="card-img-top" alt="${data.recipe.title}">
-                        <div class="card-body">
-                            <button class="btn btn-sm btn-success" onclick="updateRecipeImage(${data.recipe.id}, '${data.recipe.current_image}')">使用此图片</button>
+            // 显示爬取到的多张图片
+            if (data.images && data.images.length > 0) {
+                data.images.forEach((imageUrl, index) => {
+                    const imageCol = document.createElement('div');
+                    imageCol.className = 'col-md-4 mb-3';
+                    imageCol.innerHTML = `
+                        <div class="card">
+                            <img src="${imageUrl}" class="card-img-top" alt="${data.recipe.title} ${index+1}" style="height: 200px; object-fit: cover;">
+                            <div class="card-body">
+                                <button class="btn btn-sm btn-success" onclick="updateRecipeImage(${data.recipe.id}, '${imageUrl}')">使用此图片</button>
+                            </div>
                         </div>
-                    </div>
-                `;
-                imageGrid.appendChild(imageCol);
+                    `;
+                    imageGrid.appendChild(imageCol);
+                });
+            } else {
+                // 如果没有找到图片，显示提示
+                const noImageCol = document.createElement('div');
+                noImageCol.className = 'col-12';
+                noImageCol.innerHTML = '<p class="text-center">未找到图片</p>';
+                imageGrid.appendChild(noImageCol);
             }
             
             // 添加翻页按钮事件
@@ -282,6 +293,9 @@
             document.getElementById('nextImages').onclick = function() {
                 fetchRecipeImages(recipeId, offset + 10);
             };
+        })
+        .catch(error => {
+            console.error(`[封面爬虫] 错误:`, error);
         });
     }
     

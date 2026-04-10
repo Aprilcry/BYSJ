@@ -134,34 +134,66 @@ def get_recipe_images():
     if not recipe:
         return jsonify({'error': '菜谱不存在'})
     
-    # 运行批量添加菜谱封面图片脚本
-    script_path = os.path.join(app.root_path, '..', 'crawler', '批量添加菜谱封面图片.py')
+    # 直接实现图片搜索逻辑，避免调用脚本
+    import requests
+    from bs4 import BeautifulSoup
+    import urllib.parse
     
-    # 临时修改脚本，只处理指定菜谱
-    with open(script_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    def search_recipe_images(recipe_name, offset=0, count=10):
+        """搜索菜谱图片"""
+        images = []
+        try:
+            # 使用Bing图片搜索
+            query = urllib.parse.quote(f"{recipe_name} 菜谱 封面")
+            # 添加偏移量参数
+            url = f"https://bing.com/images/search?q={query}&first={offset+1}"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            response = requests.get(url, headers=headers, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            img_tags = soup.find_all('img')
+            
+            for img in img_tags:
+                # 优先使用data-src属性
+                img_url = img.get('data-src') or img.get('src')
+                if img_url and 'http' in img_url:
+                    # 过滤掉小图标、SVG和占位符
+                    if ('thumbnail' not in img_url.lower() and 
+                        'icon' not in img_url.lower() and 
+                        '.svg' not in img_url.lower() and
+                        'bing.com/rp/' not in img_url and
+                        'via.placeholder.com' not in img_url):
+                        images.append(img_url)
+                        if len(images) >= count:
+                            break
+            
+            # 如果没有找到足够的图片，尝试使用Trae API生成图片
+            if len(images) < count:
+                for i in range(count - len(images)):
+                    try:
+                        prompt = urllib.parse.quote(f"{recipe_name} 美食 菜谱 封面 {i+1}")
+                        images.append(f"https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt={prompt}&image_size=landscape_16_9")
+                    except Exception:
+                        pass
+            
+        except Exception as e:
+            print(f"搜索图片失败: {e}")
+            # 出错时尝试使用Trae API
+            try:
+                for i in range(count):
+                    prompt = urllib.parse.quote(f"{recipe_name} 美食 菜谱 封面 {i+1}")
+                    images.append(f"https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt={prompt}&image_size=landscape_16_9")
+            except Exception:
+                pass
+        
+        return images
     
-    # 替换查询部分
-    import re
-    new_content = re.sub(r'cursor.execute\("SELECT id, title, image_url FROM recipe WHERE.*?"\)', 
-                        f"cursor.execute(\"SELECT id, title, image_url FROM recipe WHERE id = {recipe_id}\")", 
-                        content)
-    
-    # 写回修改后的内容
-    temp_script = tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8')
-    temp_script.write(new_content)
-    temp_script.close()
-    
-    # 运行脚本
-    result = subprocess.run([sys.executable, temp_script.name], 
-                          capture_output=True, text=True, 
-                          cwd=os.path.dirname(script_path))
-    
-    # 删除临时脚本
-    os.unlink(temp_script.name)
-    
-    # 重新获取菜谱信息
-    recipe = Recipe.query.get(recipe_id)
+    # 搜索图片
+    images = search_recipe_images(recipe.title, offset, 10)
     
     return jsonify({
         'recipe': {
@@ -169,8 +201,9 @@ def get_recipe_images():
             'title': recipe.title,
             'current_image': recipe.image_url
         },
-        'output': result.stdout,
-        'error': result.stderr
+        'images': images,
+        'offset': offset,
+        'total': len(images)
     })
 
 @bp.route('/video_crawler')
