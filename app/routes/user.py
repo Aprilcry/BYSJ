@@ -97,9 +97,36 @@ def index():
     end = start + fav_per_page
     favorites = favorites[start:end]
     
+    # 获取用户帖子 - 支持分页
+    post_page = request.args.get('post_page', 1, type=int)
+    post_per_page = 6
+    
+    # 获取用户发布的帖子，按创建时间倒序排序
+    user_posts = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).all()
+    
+    # 手动分页
+    total_posts = len(user_posts)
+    post_pagination = {
+        'page': post_page,
+        'per_page': post_per_page,
+        'total': total_posts,
+        'pages': (total_posts + post_per_page - 1) // post_per_page,
+        'has_prev': post_page > 1,
+        'has_next': post_page < ((total_posts + post_per_page - 1) // post_per_page),
+        'prev_num': post_page - 1,
+        'next_num': post_page + 1,
+        'iter_pages': lambda left_edge=1, right_edge=1, left_current=1, right_current=2: range(1, (total_posts + post_per_page - 1) // post_per_page + 1)
+    }
+    
+    # 切片获取当前页数据
+    start = (post_page - 1) * post_per_page
+    end = start + post_per_page
+    user_posts = user_posts[start:end]
+    
     return render_template('user/index.html', user_ingredients=user_ingredients, 
                           recent_views=recent_views, view_pagination=view_pagination,
-                          favorites=favorites, fav_pagination=fav_pagination)
+                          favorites=favorites, fav_pagination=fav_pagination,
+                          user_posts=user_posts, post_pagination=post_pagination)
 
 @bp.route('/ingredients')
 @login_required

@@ -227,6 +227,96 @@
                     {% endif %}
                 </div>
             </div>
+            
+            <!-- 我的帖子 -->
+            <div class="content-section">
+                <div class="section-header">
+                    <div class="section-icon post-icon">
+                        <i class="fas fa-comment-alt"></i>
+                    </div>
+                    <div class="section-title-group">
+                        <h3 class="section-title">我的帖子</h3>
+                        <p class="section-subtitle">共 {{ post_pagination.total }} 个帖子</p>
+                    </div>
+                </div>
+                <div class="section-body">
+                    {% if user_posts %}
+                    <div class="items-grid">
+                        {% for post in user_posts %}
+                        <a href="{{ url_for('plaza.detail', id=post.id) }}" class="item-card">
+                            <div class="item-image-wrapper">
+                                {% if post.image_url %}
+                                <img src="{{ post.image_url }}" class="item-image" alt="{{ post.title }}" loading="lazy">
+                                {% else %}
+                                <div class="item-image-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                                {% endif %}
+                                <div class="item-type-badge type-post">
+                                    <i class="fas fa-comment-alt"></i> 帖子
+                                </div>
+                            </div>
+                            <div class="item-content">
+                                <h5 class="item-title">{{ post.title }}</h5>
+                                <div class="item-meta">
+                                    <i class="far fa-clock"></i>
+                                    <span>{{ post.created_at.strftime('%m-%d %H:%M') }}</span>
+                                </div>
+                            </div>
+                            <div class="item-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 帖子分页 -->
+                    {% if post_pagination.pages > 1 %}
+                    <div class="pagination-wrapper">
+                        <nav class="pagination-nav">
+                            {% if post_pagination.has_prev %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=fav_pagination.page, post_page=post_pagination.prev_num) }}" class="page-btn page-prev">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-prev disabled">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            {% endif %}
+                            
+                            <div class="page-numbers">
+                                {% for page_num in post_pagination.iter_pages() %}
+                                {% if page_num == post_pagination.page %}
+                                <span class="page-num active">{{ page_num }}</span>
+                                {% else %}
+                                <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=fav_pagination.page, post_page=page_num) }}" class="page-num">{{ page_num }}</a>
+                                {% endif %}
+                                {% endfor %}
+                            </div>
+                            
+                            {% if post_pagination.has_next %}
+                            <a href="{{ url_for('user.index', view_page=view_pagination.page, fav_page=fav_pagination.page, post_page=post_pagination.next_num) }}" class="page-btn page-next">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% else %}
+                            <span class="page-btn page-next disabled">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                            {% endif %}
+                        </nav>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon post-empty">
+                            <i class="fas fa-comment-alt"></i>
+                        </div>
+                        <p class="empty-text">暂无帖子</p>
+                        <a href="{{ url_for('plaza.add') }}" class="empty-btn">发布帖子</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -390,6 +480,11 @@
 .favorite-icon {
     background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%);
     box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+.post-icon {
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .section-title-group {
@@ -646,6 +741,11 @@
 .favorite-empty {
     background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
     color: #DB2777;
+}
+
+.post-empty {
+    background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+    color: #2563EB;
 }
 
 .empty-text {
