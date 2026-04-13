@@ -1,7 +1,24 @@
+import os
+import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from app.models import Recipe, UserIngredient, RecipeIngredient, User, PostLike, Favorite, Comment, RecipeView
 from app import db
+
+# 数据保存目录
+DATA_DIR = os.path.join(os.getcwd(), 'recommender_data')
+
+# 确保数据目录存在
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+# 文件路径
+RECIPE_IDS_PATH = os.path.join(DATA_DIR, 'recipe_ids.json')
+USER_IDS_PATH = os.path.join(DATA_DIR, 'user_ids.json')
+INTERACTION_MATRIX_PATH = os.path.join(DATA_DIR, 'interaction_matrix.npy')
+RECIPE_FEATURES_PATH = os.path.join(DATA_DIR, 'recipe_features.npy')
+CF_SIMILARITY_MATRIX_PATH = os.path.join(DATA_DIR, 'cf_similarity_matrix.npy')
+CONTENT_SIMILARITY_MATRIX_PATH = os.path.join(DATA_DIR, 'content_similarity_matrix.npy')
 
 class HybridRecommender:
     def __init__(self):
@@ -11,6 +28,61 @@ class HybridRecommender:
         self.recipe_features = []
         self.interaction_matrix = None
         self.user_ids = []
+    
+    def load_data_from_files(self):
+        """从文件加载推荐器数据"""
+        try:
+            print("从文件加载推荐器数据...")
+            
+            # 加载列表数据
+            if os.path.exists(RECIPE_IDS_PATH):
+                with open(RECIPE_IDS_PATH, 'r', encoding='utf-8') as f:
+                    self.recipe_ids = json.load(f)
+                print(f"加载菜谱ID列表，共 {len(self.recipe_ids)} 个菜谱")
+            else:
+                print("菜谱ID列表文件不存在")
+                return False
+            
+            if os.path.exists(USER_IDS_PATH):
+                with open(USER_IDS_PATH, 'r', encoding='utf-8') as f:
+                    self.user_ids = json.load(f)
+                print(f"加载用户ID列表，共 {len(self.user_ids)} 个用户")
+            else:
+                print("用户ID列表文件不存在")
+                return False
+            
+            # 加载矩阵数据
+            if os.path.exists(INTERACTION_MATRIX_PATH):
+                self.interaction_matrix = np.load(INTERACTION_MATRIX_PATH)
+                print(f"加载交互矩阵，形状: {self.interaction_matrix.shape}")
+            else:
+                print("交互矩阵文件不存在")
+            
+            if os.path.exists(RECIPE_FEATURES_PATH):
+                self.recipe_features = np.load(RECIPE_FEATURES_PATH)
+                print(f"加载菜谱特征矩阵，形状: {self.recipe_features.shape}")
+            else:
+                print("菜谱特征矩阵文件不存在")
+            
+            if os.path.exists(CF_SIMILARITY_MATRIX_PATH):
+                self.cf_similarity_matrix = np.load(CF_SIMILARITY_MATRIX_PATH)
+                print(f"加载协同过滤相似度矩阵，形状: {self.cf_similarity_matrix.shape}")
+            else:
+                print("协同过滤相似度矩阵文件不存在")
+            
+            if os.path.exists(CONTENT_SIMILARITY_MATRIX_PATH):
+                self.content_similarity_matrix = np.load(CONTENT_SIMILARITY_MATRIX_PATH)
+                print(f"加载内容相似度矩阵，形状: {self.content_similarity_matrix.shape}")
+            else:
+                print("内容相似度矩阵文件不存在")
+            
+            print("推荐器数据加载完成！")
+            return True
+        except Exception as e:
+            print(f"加载推荐器数据失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
     
     def prepare_data(self):
         """准备推荐所需的数据"""
@@ -185,9 +257,18 @@ class HybridRecommender:
     def get_recommendations(self, target_recipe_id, top_n=5, weight_cf=0.6, weight_content=0.4):
         """获取混合推荐结果"""
         try:
+            # 检查推荐器数据是否加载
+            if not self.recipe_ids or (self.cf_similarity_matrix is None and self.content_similarity_matrix is None):
+                print("推荐器数据未加载，返回默认热门推荐")
+                # 返回默认热门推荐
+                popular_recipes = Recipe.query.order_by(Recipe.views.desc()).limit(top_n).all()
+                return popular_recipes
+            
             if target_recipe_id not in self.recipe_ids:
                 print(f"菜谱ID {target_recipe_id} 不在菜谱列表中")
-                return []
+                # 返回默认热门推荐
+                popular_recipes = Recipe.query.order_by(Recipe.views.desc()).limit(top_n).all()
+                return popular_recipes
             
             # 获取目标菜谱的索引
             target_idx = self.recipe_ids.index(target_recipe_id)
@@ -229,7 +310,9 @@ class HybridRecommender:
             print(f"获取推荐失败: {str(e)}")
             import traceback
             traceback.print_exc()
-            return []
+            # 出错时返回默认热门推荐
+            popular_recipes = Recipe.query.order_by(Recipe.views.desc()).limit(top_n).all()
+            return popular_recipes
 
 # 全局推荐器实例
 recommender = HybridRecommender()
@@ -239,9 +322,13 @@ def init_recommender():
     """初始化推荐器"""
     try:
         print("正在初始化推荐器...")
-        recommender.prepare_data()
-        recommender.calculate_similarity_matrices()
-        print("推荐器初始化完成！")
+        # 尝试从文件加载数据
+        if recommender.load_data_from_files():
+            print("推荐器初始化完成！")
+        else:
+            print("没有找到保存的推荐器数据，直接进入应用")
+            # 没有文件时，不自动计算，直接进入应用
+            print("推荐器初始化完成！")
     except Exception as e:
         print(f"初始化推荐器失败: {str(e)}")
         import traceback

@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.models import User, UserIngredient, Ingredient, RecipeView, Recipe, Favorite, Post, PostView, Message
@@ -354,3 +355,40 @@ def restore_user(user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'操作失败: {str(e)}'})
+
+@bp.route('/update-recommender')
+@login_required
+def update_recommender():
+    # 检查用户是否为管理员
+    if not current_user.is_admin:
+        flash('无权限执行此操作', 'danger')
+        return redirect(url_for('user.index'))
+    
+    # 执行更新推荐器脚本
+    try:
+        import subprocess
+        import sys
+        
+        # 运行更新脚本
+        result = subprocess.run(
+            [sys.executable, 'update_recommender.py'],
+            cwd=os.path.dirname(os.path.abspath(__file__)) + '/../..',
+            capture_output=True,
+            text=True
+        )
+        
+        # 检查执行结果
+        if result.returncode == 0:
+            flash('推荐器更新成功！', 'success')
+            print("推荐器更新输出:")
+            print(result.stdout)
+        else:
+            flash('推荐器更新失败，请查看日志', 'danger')
+            print("推荐器更新错误:")
+            print(result.stderr)
+    except Exception as e:
+        flash(f'推荐器更新失败: {str(e)}', 'danger')
+        import traceback
+        traceback.print_exc()
+    
+    return redirect(url_for('user.index'))
