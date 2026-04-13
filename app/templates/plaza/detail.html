@@ -43,6 +43,12 @@
         {% if 'bilibili.com' in post.video_url %}
         <!-- B站视频嵌入 -->
         <iframe src="{{ post.video_url }}" width="800" height="450" frameborder="0" allowfullscreen></iframe>
+        {% elif post.video_url.endswith('.mp4') or post.video_url.endswith('.webm') or post.video_url.endswith('.ogg') %}
+        <!-- 直接视频文件 -->
+        <video width="800" height="450" controls>
+            <source src="{{ post.video_url }}" type="video/mp4">
+            您的浏览器不支持视频播放。
+        </video>
         {% else %}
         <!-- 其他视频链接 -->
         <a href="{{ post.video_url }}" target="_blank">查看视频</a>
