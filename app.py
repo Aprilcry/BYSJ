@@ -39,6 +39,11 @@ def check_expired_ingredients():
             
             # 计算是否过期
             if user_ingredient.added_at:
+                # 确保两个时间对象都是带时区的
+                from app.models import TZ
+                if user_ingredient.added_at.tzinfo is None:
+                    # 如果added_at不带时区，添加时区
+                    user_ingredient.added_at = TZ.localize(user_ingredient.added_at)
                 days_since_added = (get_local_time() - user_ingredient.added_at).days
                 if days_since_added > shelf_life.shelf_life_days:
                     expired_ingredients.append({
@@ -63,17 +68,40 @@ def check_expired_ingredients():
             
             # 发送邮件
             try:
-                msg = Message(subject, recipients=[user.email])
-                msg.body = body
-                mail.send(msg)
+                import smtplib
+                from email.mime.text import MIMEText
+                from email.mime.multipart import MIMEMultipart
+                
+                # 邮箱配置
+                SMTP_SERVER = 'smtp.qq.com'
+                SMTP_PORT = 587
+                SMTP_USER = '1518965403@qq.com'
+                SMTP_PASSWORD = 'mfwngrcfbhfqgadh'
+                
+                # 创建邮件
+                msg = MIMEMultipart()
+                msg['From'] = SMTP_USER
+                msg['To'] = user.email
+                msg['Subject'] = subject
+                
+                # 邮件内容
+                msg.attach(MIMEText(body, 'plain', 'utf-8'))
+                
+                # 发送邮件
+                server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASSWORD)
+                server.send_message(msg)
+                server.quit()
                 print(f"已向 {user.email} 发送过期食材提醒邮件")
             except Exception as e:
                 print(f"发送邮件失败：{str(e)}")
             
             # 创建平台内消息通知
             try:
+                from app.models import Message as PlatformMessage
                 message_content = body.replace('\n', '<br>')
-                new_message = Message(
+                new_message = PlatformMessage(
                     user_id=user.id,
                     title=subject,
                     content=message_content

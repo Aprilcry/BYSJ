@@ -364,31 +364,49 @@ def update_recommender():
         flash('无权限执行此操作', 'danger')
         return redirect(url_for('user.index'))
     
-    # 执行更新推荐器脚本
-    try:
+    # 渲染更新页面
+    return render_template('user/update_recommender.html')
+
+@bp.route('/update-recommender-stream')
+@login_required
+def update_recommender_stream():
+    # 检查用户是否为管理员
+    if not current_user.is_admin:
+        return "无权限执行此操作", 403
+    
+    def generate():
         import subprocess
         import sys
         
         # 运行更新脚本
-        result = subprocess.run(
+        process = subprocess.Popen(
             [sys.executable, 'update_recommender.py'],
             cwd=os.path.dirname(os.path.abspath(__file__)) + '/../..',
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True
         )
         
-        # 检查执行结果
-        if result.returncode == 0:
-            flash('推荐器更新成功！', 'success')
-            print("推荐器更新输出:")
-            print(result.stdout)
+        # 实时读取输出
+        for line in iter(process.stdout.readline, ''):
+            if line:
+                # 发送输出到前端
+                yield f"data: {line}\n\n"
+        
+        # 等待进程结束
+        process.wait()
+        
+        # 发送结束标志
+        if process.returncode == 0:
+            yield f"data: 推荐器更新成功！\n\n"
         else:
-            flash('推荐器更新失败，请查看日志', 'danger')
-            print("推荐器更新错误:")
-            print(result.stderr)
-    except Exception as e:
-        flash(f'推荐器更新失败: {str(e)}', 'danger')
-        import traceback
-        traceback.print_exc()
+            yield f"data: 推荐器更新失败，请查看日志\n\n"
+        yield "data: END\n\n"
     
-    return redirect(url_for('user.index'))
+    # 从蓝图获取应用实例
+    from flask import current_app
+    # 返回流式响应
+    return current_app.response_class(
+        generate(),
+        mimetype='text/event-stream'
+    )
