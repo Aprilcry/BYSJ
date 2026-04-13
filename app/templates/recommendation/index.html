@@ -55,15 +55,35 @@
                 <button id="get-recommendations" class="btn btn-primary btn-lg">获取个性化匹配</button>
             </div>
             <div id="recommendation-results" class="row">
-                <div class="col-md-12">
-                    <div class="card shadow-lg">
-                        <div class="card-body text-center p-8">
-                            <h5 class="card-title mb-4">点击上方按钮获取个性化推荐</h5>
-                            <p class="card-text text-muted mb-6">根据你添加的食材，我们会为你推荐最匹配的菜谱</p>
-                            <a href="{{ url_for('ingredient.index') }}" class="btn btn-primary">去添加食材</a>
+                {% if user_recommendations %}
+                    {% for recipe in user_recommendations %}
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-body">
+                                    <img src="{{ recipe.image_url or 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=' ~ recipe.title ~ '%20美食图片&image_size=landscape_16_9' }}" class="card-img-top mb-3 rounded" style="height: 200px; object-fit: cover;" alt="{{ recipe.title }}">
+                                    <h5 class="card-title">{{ recipe.title }}</h5>
+                                    <p class="card-text text-muted">{{ recipe.description[:100] }}{% if recipe.description|length > 100 %}...{% endif %}</p>
+                                    <div class="mt-auto">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge bg-primary">匹配度: {{ recipe.match_count }}</span>
+                                            <a href="/recipe/detail/{{ recipe.id }}" class="btn btn-outline-primary btn-sm">查看详情</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-md-12">
+                        <div class="card shadow-lg">
+                            <div class="card-body text-center p-8">
+                                <h5 class="card-title mb-4">点击上方按钮获取个性化推荐</h5>
+                                <p class="card-text text-muted mb-6">根据你添加的食材，我们会为你推荐最匹配的菜谱</p>
+                                <a href="{{ url_for('ingredient.index') }}" class="btn btn-primary">去添加食材</a>
+                            </div>
                         </div>
                     </div>
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>

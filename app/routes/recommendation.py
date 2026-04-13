@@ -4,6 +4,8 @@ from app.models import Recipe, Ingredient, UserIngredient, RecipeView
 from app import db
 from datetime import datetime, timedelta
 from sqlalchemy import func
+import json
+import os
 
 # 创建蓝图
 bp = Blueprint('recommendation', __name__)
@@ -11,8 +13,23 @@ bp = Blueprint('recommendation', __name__)
 @bp.route('/')
 @login_required
 def index():
-    # 不再在页面加载时计算推荐，而是由前端按钮触发
-    return render_template('recommendation/index.html')
+    # 尝试加载保存的推荐结果
+    user_recommendations = None
+    try:
+        # 构建保存文件路径
+        save_dir = os.path.join(os.getcwd(), 'recommender_data', 'user_recommendations')
+        os.makedirs(save_dir, exist_ok=True)
+        save_file = os.path.join(save_dir, f'{current_user.id}.json')
+        
+        # 检查文件是否存在
+        if os.path.exists(save_file):
+            with open(save_file, 'r', encoding='utf-8') as f:
+                user_recommendations = json.load(f)
+    except Exception as e:
+        print(f'加载保存的推荐结果失败: {e}')
+    
+    # 传递推荐结果到模板
+    return render_template('recommendation/index.html', user_recommendations=user_recommendations)
 
 @bp.route('/api/personalized')
 @login_required
@@ -48,7 +65,23 @@ def api_personalized():
     recommended_recipes.sort(key=lambda x: x['match_count'], reverse=True)
     
     # 限制返回结果数量
-    return jsonify(recommended_recipes[:6])
+    result = recommended_recipes[:6]
+    
+    # 保存推荐结果
+    try:
+        # 构建保存文件路径
+        save_dir = os.path.join(os.getcwd(), 'recommender_data', 'user_recommendations')
+        os.makedirs(save_dir, exist_ok=True)
+        save_file = os.path.join(save_dir, f'{current_user.id}.json')
+        
+        # 保存结果到文件
+        with open(save_file, 'w', encoding='utf-8') as f:
+            json.dump(result, f, ensure_ascii=False, indent=2)
+        print(f'推荐结果已保存到: {save_file}')
+    except Exception as e:
+        print(f'保存推荐结果失败: {e}')
+    
+    return jsonify(result)
 
 @bp.route('/api/recommend')
 def api_recommend():
