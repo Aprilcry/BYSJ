@@ -42,6 +42,7 @@ class UserIngredient(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     ingredient_id = db.Column(db.Integer, db.ForeignKey('ingredient.id'), nullable=False)
+    quantity = db.Column(db.String(50), nullable=False, default='1')
     added_at = db.Column(db.DateTime, default=get_local_time)
 
 # 菜谱模型

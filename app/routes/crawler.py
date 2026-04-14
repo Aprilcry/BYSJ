@@ -18,7 +18,8 @@ def admin_required(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            return redirect(url_for('main.index'))
+            from flask import abort
+            abort(403)  # 403 Forbidden
         return func(*args, **kwargs)
     return wrapper
 

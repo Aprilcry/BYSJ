@@ -37,12 +37,13 @@ def add():
         name = request.form['name']
         category = request.form['category']
         added_at = request.form.get('added_at')
+        quantity = request.form.get('quantity', '1')
         # 检查食材是否已存在
         existing_ingredient = Ingredient.query.filter_by(name=name).first()
         if existing_ingredient:
             # 食材已存在，直接添加到用户食材列表
             from app.models import UserIngredient, TZ
-            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=existing_ingredient.id)
+            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=existing_ingredient.id, quantity=quantity)
             if added_at:
                 from datetime import datetime
                 user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
@@ -54,7 +55,7 @@ def add():
             db.session.flush()  # 获取食材ID
             # 添加到用户食材列表
             from app.models import UserIngredient, TZ
-            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=new_ingredient.id)
+            user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=new_ingredient.id, quantity=quantity)
             if added_at:
                 from datetime import datetime
                 user_ingredient.added_at = TZ.localize(datetime.strptime(added_at, '%Y-%m-%dT%H:%M'))
@@ -190,6 +191,7 @@ def add_from_camera():
     data = request.get_json()
     ingredient_name = data.get('name')
     category = data.get('category', '其他')
+    quantity = data.get('quantity', '1')
     
     if not ingredient_name:
         return {'success': False, 'message': '请提供食材名称'}
@@ -203,7 +205,7 @@ def add_from_camera():
             db.session.commit()
         
         # 添加到用户食材列表
-        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id)
+        user_ingredient = UserIngredient(user_id=current_user.id, ingredient_id=ingredient.id, quantity=quantity)
         db.session.add(user_ingredient)
         db.session.commit()
         
