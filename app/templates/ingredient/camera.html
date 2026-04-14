@@ -103,9 +103,27 @@
                 clearInterval(recognitionInterval);
             }
             
-            // 自动添加最后一帧识别到的食材
+            // 停止识别后，保持当前画面和边界框不变
+            // 不再自动添加食材，让用户点击添加按钮确认
+            
+            // 保持添加按钮显示，让用户确认添加
             if (currentIngredient && currentIngredient !== 'null' && currentIngredient !== null && currentIngredient.trim() !== '') {
-                console.log('添加食材:', currentIngredient);
+                console.log('停止识别，等待用户确认添加:', currentIngredient);
+                // 保持添加按钮显示
+                addBtn.style.display = 'inline-block';
+            } else {
+                console.log('currentIngredient为null或空');
+                resultDiv.innerHTML = `<div class="alert alert-info">未检测到食材</div>`;
+                addBtn.style.display = 'none';
+            }
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+        
+        // 添加到我的食材
+        addBtn.addEventListener('click', function() {
+            if (currentIngredient) {
                 // 调用添加食材的接口
                 fetch('/ingredient/add-from-camera', {
                     method: 'POST',
@@ -127,47 +145,6 @@
                         window.location.href = '{{ url_for('ingredient.index') }}';
                     } else {
                         alert(`添加失败: ${data.message}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('添加请求错误:', error);
-                    alert('添加失败: 网络错误');
-                });
-                
-                // 清空当前识别到的食材
-                currentIngredient = null;
-            } else {
-                console.log('currentIngredient为null或空，无法添加');
-                alert('未检测到食材，无法添加');
-            }
-            
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            addBtn.style.display = 'none';
-        });
-        
-        // 添加到我的食材
-        addBtn.addEventListener('click', function() {
-            if (currentIngredient) {
-                // 调用添加食材的接口
-                fetch('/ingredient/add-from-camera', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        name: currentIngredient,
-                        category: '其他',
-                        quantity: '1'
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('食材添加成功');
-                        addBtn.style.display = 'none';
-                    } else {
-                        alert('添加失败: ' + data.message);
                     }
                 })
                 .catch(error => {
