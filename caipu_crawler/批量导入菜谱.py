@@ -35,7 +35,7 @@ with open(csv_file, 'r', encoding='utf-8') as infile:
     
     for i, row in enumerate(reader, 1):
         # 检查必要字段
-        if not row['﻿标题']:
+        if not row['标题']:
             print(f"第{i}行: 缺少标题字段，跳过")
             continue
         if not row['简介']:
@@ -75,7 +75,7 @@ with open(csv_file, 'r', encoding='utf-8') as infile:
         
         # 构建菜谱数据
         recipe = {
-            'title': row['﻿标题'],
+            'title': row['标题'],
             'description': row['简介'],
             'instructions': formatted_instructions_text,
             'category': row['二级分类'],
