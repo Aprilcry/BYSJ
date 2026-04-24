@@ -21,7 +21,7 @@ print("批量导入菜谱脚本")
 print("=" * 50)
 
 # 读取CSV文件
-csv_file = 'd:\\BYSJ\\caipu_crawler\\caipu_ultimate_final_cleaned.csv'
+csv_file = 'd:\\BYSJ\\caipu_crawler\\caipu_ultimate_final.csv'
 print(f"正在读取文件: {csv_file}")
 
 if not os.path.exists(csv_file):
