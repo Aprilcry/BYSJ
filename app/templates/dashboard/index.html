@@ -216,6 +216,7 @@
 {% block scripts %}
 <!-- ECharts -->
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // 加载数据
@@ -528,10 +529,29 @@
 
     // 初始化热门搜索关键词词云
     function initSearchKeywordsChart(data) {
+        // 检查数据是否有效
+        if (!data || !data.keywords || !data.counts || data.keywords.length === 0) {
+            // 显示提示信息
+            const chartContainer = document.getElementById('search-keywords-chart');
+            chartContainer.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #666;">暂无搜索数据</div>';
+            return;
+        }
+        
         const chart = echarts.init(document.getElementById('search-keywords-chart'));
+        
+        // 构建词云数据
+        const wordCloudData = data.keywords.map((keyword, index) => ({
+            name: keyword,
+            value: data.counts[index]
+        }));
+        
+        // 词云图配置
         const option = {
             tooltip: {
-                trigger: 'item'
+                trigger: 'item',
+                formatter: function(params) {
+                    return params.name + ': ' + params.value + '次';
+                }
             },
             series: [
                 {
@@ -543,7 +563,7 @@
                     height: '90%',
                     right: null,
                     bottom: null,
-                    sizeRange: [12, 60],
+                    sizeRange: [12, 40],
                     rotationRange: [-45, 45],
                     rotationStep: 45,
                     gridSize: 8,
@@ -566,13 +586,11 @@
                             shadowColor: '#333'
                         }
                     },
-                    data: data.keywords.map((keyword, index) => ({
-                        name: keyword,
-                        value: data.counts[index]
-                    }))
+                    data: wordCloudData
                 }
             ]
         };
+        
         chart.setOption(option);
         window.addEventListener('resize', function() {
             chart.resize();
