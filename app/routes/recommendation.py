@@ -162,7 +162,7 @@ def api_ranking():
             ).outerjoin(
                 monthly_views, Recipe.id == monthly_views.c.recipe_id
             ).order_by(
-                (monthly_views.c.monthly_count or 0).desc()
+                func.coalesce(monthly_views.c.monthly_count, 0).desc()
             ).limit(5).all()
             
             for recipe, month_views in recipes:
