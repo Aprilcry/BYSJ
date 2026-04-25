@@ -154,8 +154,8 @@ def get_search_keywords_data():
     ).order_by(SearchRecord.count.desc()).limit(10).all()
     
     return {
-        'keywords': [kw.keyword for kw in keywords],
-        'counts': [kw.count for kw in keywords]
+        'keywords': [kw[0] for kw in keywords],
+        'counts': [kw[1] for kw in keywords]
     }
 
 def get_engagement_rate_data():
