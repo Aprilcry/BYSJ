@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
-from app.models import Post, Comment, User, PostLike, Favorite, PostView, Message
+from app.models import Post, Comment, User, PostLike, Favorite, PostView, Message, SearchRecord
 from app import db, app
 import os
 import uuid
@@ -15,7 +15,20 @@ def index():
     search_query = request.args.get('search', '')
     sort_by = request.args.get('sort', 'newest')  # newest 或 hot
     
+    # 记录搜索关键词
     if search_query:
+        # 查找是否已存在该关键词
+        existing_record = SearchRecord.query.filter_by(keyword=search_query).first()
+        if existing_record:
+            # 更新计数和最后搜索时间
+            existing_record.count += 1
+            existing_record.last_searched = datetime.utcnow()
+        else:
+            # 创建新记录
+            new_record = SearchRecord(keyword=search_query)
+            db.session.add(new_record)
+        db.session.commit()
+        
         # 搜索功能
         posts = Post.query.filter(
             (Post.title.contains(search_query)) | 

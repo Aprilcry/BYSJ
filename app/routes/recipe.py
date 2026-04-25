@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from app.models import Recipe, RecipeIngredient, Ingredient, RecipeView, User, Favorite
+from app.models import Recipe, RecipeIngredient, Ingredient, RecipeView, User, Favorite, SearchRecord
 from app import db
 import os
 import requests
@@ -228,6 +228,22 @@ def delete(id):
 @bp.route('/search')
 def search():
     keyword = request.args.get('keyword')
+    
+    # 记录搜索关键词
+    if keyword:
+        # 查找是否已存在该关键词
+        existing_record = SearchRecord.query.filter_by(keyword=keyword).first()
+        if existing_record:
+            # 更新计数和最后搜索时间
+            existing_record.count += 1
+            existing_record.last_searched = datetime.utcnow()
+        else:
+            # 创建新记录
+            new_record = SearchRecord(keyword=keyword)
+            db.session.add(new_record)
+        db.session.commit()
+    
+    # 执行搜索
     recipes = Recipe.query.filter(Recipe.title.contains(keyword) | Recipe.description.contains(keyword)).all()
     return render_template('recipe/index.html', recipes=recipes)
 
