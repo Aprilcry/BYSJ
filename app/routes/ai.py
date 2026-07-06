@@ -55,7 +55,7 @@ def chat():
         
         # 构建请求参数
         payload = {
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-pro",
             "messages": [
                 {
                     "role": "system",

@@ -1,23 +1,16 @@
-# 先忽略根目录下所有的文件和文件夹
+# 先忽略根目录全部内容
 /*
 
-# 放行需要上传的app文件夹（包含里面的全部内容）
+# 放行指定目录
 !/app/
+!/caipu_crawler/
+!/crawler/
 
-# 放行需要上传的app.py文件
+# 放行指定单文件
 !/app.py
 
-# 保留当前过滤规则文件本身，一起上传
-!.gitignore
-
-# 放行需要上传的caipu_crawler文件夹（包含里面的全部内容）
-!/caipu_crawler/
-
-# 放行 crawler 文件夹（关键：必须先放行文件夹，再放行里面的文件）
-!/crawler/
+# crawler内仅保留指定py，其余全部忽略
 /crawler/*
-
-# 放行 crawler 文件夹下所有需要的 Python 文件（相对路径）
 !/crawler/批量添加菜谱封面图片.py
 !/crawler/video_crawler.py
 !/crawler/SDBZ.py
